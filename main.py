@@ -12,27 +12,47 @@ from PyQt6.QtCore import QUrl, Qt
 import tempfile
 from plotly.subplots import make_subplots
 from abstraction import take_values_from_csv, EscData
+from data_process import StepTest
+
 
 class CombinedView(QDialog):
-    def __init__(self,e0,e1,e2,e3):
+    def __init__(self,e0,e1,e2,e3,post_process=False):
         super().__init__()
+        if post_process:
+            self.esc0 : StepTest = e0
+            self.esc1 : StepTest = e1
+            self.esc2 : StepTest = e2
+            self.esc3 : StepTest = e3
+            print(len(self.esc0.timestamp), len(self.esc0.current), len(self.esc0.m_duty), len(self.esc0.temp), len(self.esc0.t_duty),
+                  len(self.esc0.voltage), len(self.esc0.rpm))
+            self.setWindowTitle("Combined View - Post Process")
+            self.setGeometry(150, 150, 800, 600)
+            self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowMaximizeButtonHint)
+            self.checkbox_layout = QVBoxLayout()
+            self.checkboxes = []
+            names = ['Voltage', 'Current', 'Temperature', 'RPM', 'Throttle Duty', 'Motor Duty']
+            for i in range(6):
+                checkbox = QCheckBox(names[i])
+                checkbox.stateChanged.connect(self.update_status)
+                self.checkbox_layout.addWidget(checkbox)
+                self.checkboxes.append(checkbox)
+        else :
+            self.esc0 : EscData = e0
+            self.esc1 : EscData = e1
+            self.esc2 : EscData = e2
+            self.esc3 : EscData = e3
+            self.setWindowTitle("Combined View")
+            self.setGeometry(150,150,800,600)
+            self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowMaximizeButtonHint)
+            self.checkbox_layout = QVBoxLayout()
+            self.checkboxes = []
+            names = ['Voltage','Current','Temperature','eRPM','Throttle Duty','Motor Duty','Phase Current','Power','Status 1','Status 2']
+            for i in range(10):
+                checkbox = QCheckBox(names[i])
+                checkbox.stateChanged.connect(self.update_status)
+                self.checkbox_layout.addWidget(checkbox)
+                self.checkboxes.append(checkbox)
 
-        self.esc0 = e0
-        self.esc1 = e1
-        self.esc2 = e2
-        self.esc3 = e3
-
-        self.setWindowTitle("Combined View")
-        self.setGeometry(150,150,800,600)
-        self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowMaximizeButtonHint)
-        self.checkbox_layout = QVBoxLayout()
-        self.checkboxes = []
-        names = ['Voltage','Current','Temperature','eRPM','Throttle Duty','Motor Duty','Phase Current','Power','Status 1','Status 2']
-        for i in range(10):
-            checkbox = QCheckBox(names[i])
-            checkbox.stateChanged.connect(self.update_status)
-            self.checkbox_layout.addWidget(checkbox)
-            self.checkboxes.append(checkbox)
 
         checkbox_container = QWidget()
         checkbox_container.setLayout(self.checkbox_layout)
@@ -52,13 +72,84 @@ class CombinedView(QDialog):
         self.status_label = QLabel()
         self.checkbox_layout.addWidget(self.status_label)
 
-        self.load_data()
-        self.update_plot(None)
+        if post_process == True:
+            print("here")
+            self.load_data_post_process()
+            self.update_plot(None)
+        else:
+            self.load_data()
+            self.update_plot(None)
 
     def update_status(self):
         checked_boxes = [checkbox.text() for checkbox in self.checkboxes if checkbox.isChecked()]
         print(checked_boxes)
         self.update_plot(checked_boxes)
+
+    def load_data_post_process(self):
+            try:
+                self.df_esc0 = pd.DataFrame({
+                    'Time': self.esc0.timestamp,
+                    'Voltage': self.esc0.voltage,
+                    'Current': self.esc0.current,
+                    'Temperature': self.esc0.temp,
+                    'RPM': self.esc0.rpm,
+                    'Throttle Duty': self.esc0.t_duty,
+                    'Motor Duty': self.esc0.m_duty,
+                    'Serial Number': self.esc0.serial_number
+                })
+                print("ESC0 DataFrame created successfully")
+                print(self.df_esc0.head())
+
+                self.df_esc1 = pd.DataFrame({
+                    'Time': self.esc1.timestamp,
+                    'Voltage': self.esc1.voltage,
+                    'Current': self.esc1.current,
+                    'Temperature': self.esc1.temp,
+                    'RPM': self.esc1.rpm,
+                    'Throttle Duty': self.esc1.t_duty,
+                    'Motor Duty': self.esc1.m_duty,
+                    'Serial Number': self.esc1.serial_number
+                })
+                print("ESC1 DataFrame created successfully")
+                print(self.df_esc1.head())
+
+                self.df_esc2 = pd.DataFrame({
+                    'Time': self.esc2.timestamp,
+                    'Voltage': self.esc2.voltage,
+                    'Current': self.esc2.current,
+                    'Temperature': self.esc2.temp,
+                    'RPM': self.esc2.rpm,
+                    'Throttle Duty': self.esc2.t_duty,
+                    'Motor Duty': self.esc2.m_duty,
+                    'Serial Number': self.esc2.serial_number
+                })
+                print("ESC2 DataFrame created successfully")
+                print(self.df_esc2.head())
+
+                self.df_esc3 = pd.DataFrame({
+                    'Time': self.esc3.timestamp,
+                    'Voltage': self.esc3.voltage,
+                    'Current': self.esc3.current,
+                    'Temperature': self.esc3.temp,
+                    'RPM': self.esc3.rpm,
+                    'Throttle Duty': self.esc3.t_duty,
+                    'Motor Duty': self.esc3.m_duty,
+                    'Serial Number': self.esc3.serial_number
+                })
+                print("ESC3 DataFrame created successfully")
+                print(self.df_esc3.head())
+
+                self.df_esc0['ESC'] = 'ESC0'
+                self.df_esc1['ESC'] = 'ESC1'
+                self.df_esc2['ESC'] = 'ESC2'
+                self.df_esc3['ESC'] = 'ESC3'
+                self.df_combined = pd.concat([self.df_esc0, self.df_esc1, self.df_esc2, self.df_esc3])
+                print("Combined DataFrame created successfully")
+                print(self.df_combined.head())
+
+            except Exception as e:
+                print(f"An error occurred: {e}")
+
     def load_data(self):
 
         self.df_esc0 = pd.DataFrame({
@@ -180,21 +271,35 @@ class CombinedView(QDialog):
         self.browser.setUrl(QUrl.fromLocalFile(tmp_file_path))
 
 class ComparisonView(QDialog):
-    def __init__(self,e0,e1,e2,e3):
+    def __init__(self,e0,e1,e2,e3,post_process=False):
         super().__init__()
-
-        self.esc0 = e0
-        self.esc1 = e1
-        self.esc2 = e2
-        self.esc3 = e3
-
-        self.setWindowTitle("Individual View")
-        self.setGeometry(150, 150, 800, 600)
-        self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowMaximizeButtonHint)
-        self.selected_value = 'Voltage'
-        self.list_widget = QListWidget()
-        self.list_widget.addItems(['Voltage', 'Current', 'Temperature', 'eRPM', 'Throttle Duty',
+        if post_process==False:
+            self.esc0 : EscData = e0
+            self.esc1 : EscData = e1
+            self.esc2 : EscData = e2
+            self.esc3 : EscData = e3
+            self.setWindowTitle("Comparison View")
+            self.setGeometry(150, 150, 800, 600)
+            self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowMaximizeButtonHint)
+            self.list_widget = QListWidget()
+            self.list_widget.addItems(['Voltage', 'Current', 'Temperature', 'eRPM', 'Throttle Duty',
                                    'Motor Duty', 'Phase Current', 'Power', 'Status 1', 'Status 2'])
+        else:
+            self.esc0 : StepTest = e0
+            self.esc1 : StepTest = e1
+            self.esc2 : StepTest = e2
+            self.esc3 : StepTest = e3
+            print(len(self.esc0.timestamp), len(self.esc0.current), len(self.esc0.m_duty), len(self.esc0.temp), len(self.esc0.t_duty),
+                  len(self.esc0.voltage), len(self.esc0.rpm))
+            self.setWindowTitle("Comparison View - Post Processed")
+            self.setGeometry(150, 150, 800, 600)
+            self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowMaximizeButtonHint)
+            self.list_widget = QListWidget()
+            self.list_widget.addItems(['Voltage', 'Current', 'Temperature', 'RPM', 'Throttle Duty',
+                                   'Motor Duty'])
+
+
+        self.selected_value = 'Voltage'
         self.list_widget.itemClicked.connect(self.on_item_clicked)
         self.browser = QWebEngineView()
         h_layout = QHBoxLayout()
@@ -204,7 +309,11 @@ class ComparisonView(QDialog):
         h_layout.setStretchFactor(self.browser, 5)
         self.setLayout(h_layout)
 
-        self.load_data()
+        if post_process==False:
+            self.load_data()
+        else:
+            self.load_data_post_process()
+
         self.update_plot()
 
     def load_data(self):
@@ -270,6 +379,71 @@ class ComparisonView(QDialog):
         self.df_esc2['ESC'] = 'ESC2'
         self.df_esc3['ESC'] = 'ESC3'
         self.df_combined = pd.concat([self.df_esc0, self.df_esc1, self.df_esc2, self.df_esc3])
+
+    def load_data_post_process(self):
+        try:
+            self.df_esc0 = pd.DataFrame({
+                'Time': self.esc0.timestamp,
+                'Voltage': self.esc0.voltage,
+                'Current': self.esc0.current,
+                'Temperature': self.esc0.temp,
+                'RPM': self.esc0.rpm,
+                'Throttle Duty': self.esc0.t_duty,
+                'Motor Duty': self.esc0.m_duty,
+                'Serial Number': self.esc0.serial_number
+            })
+            print("ESC0 DataFrame created successfully")
+            print(self.df_esc0.head())
+
+            self.df_esc1 = pd.DataFrame({
+                'Time': self.esc1.timestamp,
+                'Voltage': self.esc1.voltage,
+                'Current': self.esc1.current,
+                'Temperature': self.esc1.temp,
+                'RPM': self.esc1.rpm,
+                'Throttle Duty': self.esc1.t_duty,
+                'Motor Duty': self.esc1.m_duty,
+                'Serial Number': self.esc1.serial_number
+            })
+            print("ESC1 DataFrame created successfully")
+            print(self.df_esc1.head())
+
+            self.df_esc2 = pd.DataFrame({
+                'Time': self.esc2.timestamp,
+                'Voltage': self.esc2.voltage,
+                'Current': self.esc2.current,
+                'Temperature': self.esc2.temp,
+                'RPM': self.esc2.rpm,
+                'Throttle Duty': self.esc2.t_duty,
+                'Motor Duty': self.esc2.m_duty,
+                'Serial Number': self.esc2.serial_number
+            })
+            print("ESC2 DataFrame created successfully")
+            print(self.df_esc2.head())
+
+            self.df_esc3 = pd.DataFrame({
+                'Time': self.esc3.timestamp,
+                'Voltage': self.esc3.voltage,
+                'Current': self.esc3.current,
+                'Temperature': self.esc3.temp,
+                'RPM': self.esc3.rpm,
+                'Throttle Duty': self.esc3.t_duty,
+                'Motor Duty': self.esc3.m_duty,
+                'Serial Number': self.esc3.serial_number
+            })
+            print("ESC3 DataFrame created successfully")
+            print(self.df_esc3.head())
+
+            self.df_esc0['ESC'] = 'ESC0'
+            self.df_esc1['ESC'] = 'ESC1'
+            self.df_esc2['ESC'] = 'ESC2'
+            self.df_esc3['ESC'] = 'ESC3'
+            self.df_combined = pd.concat([self.df_esc0, self.df_esc1, self.df_esc2, self.df_esc3])
+            print("Combined DataFrame created successfully")
+            print(self.df_combined.head())
+
+        except Exception as e:
+            print(f"An error occurred: {e}")
 
     def on_item_clicked(self, item):
         self.selected_value = item.text()
@@ -422,7 +596,12 @@ class MyWindow(QMainWindow):
         self.esc2_data =[]
         self.esc3_data =[]
 
-        self.folder_selected=False
+        self.step_esc0 =[]
+        self.step_esc1 =[]
+        self.step_esc2 =[]
+        self.step_esc3 =[]
+
+        self.folder_selected = False
 
         # Central widget and main layout
         central_widget = QWidget()
@@ -439,24 +618,14 @@ class MyWindow(QMainWindow):
         self.logo_label = QLabel("Logo", self)  # Replace with actual logo if available
         left_layout.addWidget(self.logo_label)
 
-        # Buttons on the left side
-        self.individual_view_button = QPushButton("Individual View", self)
-        self.individual_view_button.clicked.connect(self.open_individual_view_window)
-        self.individual_view_button.setFixedHeight(60)
-        left_layout.addWidget(self.individual_view_button)
-        self.individual_view_button.setEnabled(False)
+        # Tabs for buttons
+        self.buttons_tab = QTabWidget(self)
+        left_layout.addWidget(self.buttons_tab)
 
-        self.comparison_view_button = QPushButton("Comparison View", self)
-        self.comparison_view_button.clicked.connect(self.open_comparison_view_window)
-        self.comparison_view_button.setFixedHeight(60)
-        left_layout.addWidget(self.comparison_view_button)
-        self.comparison_view_button.setEnabled(False)
-
-        self.combined_view_button = QPushButton("Combined View", self)
-        self.combined_view_button.clicked.connect(self.open_combined_view_window)
-        self.combined_view_button.setFixedHeight(60)
-        left_layout.addWidget(self.combined_view_button)
-        self.combined_view_button.setEnabled(False)
+        # Initially, no tabs are created
+        self.raw_tab_created = False
+        self.step_test_tab_created = False
+        self.combined_step_test_tab_created = False
 
         # Right side layout
         right_layout = QVBoxLayout()
@@ -480,14 +649,14 @@ class MyWindow(QMainWindow):
 
         self.load_button = QPushButton("Load Data", self)
         self.load_button.clicked.connect(self.load_data_button)
-        self.load_button.setEnabled(False)
+        self.load_button.setEnabled(True)
         right_layout.addWidget(self.load_button)
 
         self.load_display_widget = QWidget()
         self.load_display_widget.setFixedHeight(30)
         right_layout.addWidget(self.load_display_widget)
 
-        self.load_label = QLabel("Files not Loaded !", self)
+        self.load_label = QLabel("Files not Loaded!", self)
         self.load_display_widget_layout = QVBoxLayout()
         self.load_display_widget.setLayout(self.load_display_widget_layout)
         self.load_display_widget_layout.addWidget(self.load_label)
@@ -513,12 +682,44 @@ class MyWindow(QMainWindow):
         self.save_button.setEnabled(False)
         right_layout.addWidget(self.save_button)
 
+    def create_tab(self, tab_name, individual_callback, comparison_callback, combined_callback):
+        tab_widget = QWidget()
+        tab_layout = QVBoxLayout()
+        tab_widget.setLayout(tab_layout)
+
+        individual_view_button = QPushButton("Individual View", self)
+        individual_view_button.clicked.connect(individual_callback)
+        individual_view_button.setFixedHeight(60)
+        tab_layout.addWidget(individual_view_button)
+
+        comparison_view_button = QPushButton("Comparison View", self)
+        comparison_view_button.clicked.connect(comparison_callback)
+        comparison_view_button.setFixedHeight(60)
+        tab_layout.addWidget(comparison_view_button)
+
+        combined_view_button = QPushButton("Combined View", self)
+        combined_view_button.clicked.connect(combined_callback)
+        combined_view_button.setFixedHeight(60)
+        tab_layout.addWidget(combined_view_button)
+
+        self.buttons_tab.addTab(tab_widget, tab_name)
+
+
     def save_action(self):
         pass
     def manipulate_data_button(self):
-        self.manipulate_label.setText("Clicked (No Function Yet!)")
+
+        self.step_esc0 = StepTest(self.esc0_data)
+        self.step_esc1 = StepTest(self.esc1_data)
+        self.step_esc2 = StepTest(self.esc2_data)
+        self.step_esc3 = StepTest(self.esc3_data)
+
+        self.manipulate_label.setText("Step Test")
         self.manipulate_display_widget.setStyleSheet("background-color: green;")
         self.save_button.setEnabled(True)
+        if not self.step_test_tab_created:
+            self.create_tab("Step Test", self.open_individual_view_window_step_test, self.open_comparison_view_window_step_test, self.open_combined_view_window_step_test)
+            self.step_test_tab_created = True
 
     def load_data_button(self):
             try:
@@ -530,9 +731,11 @@ class MyWindow(QMainWindow):
                 if all([self.esc0_data is not None, self.esc1_data is not None,
                         self.esc2_data is not None, self.esc3_data is not None]):
                     self.manipulate_button.setEnabled(True)
-                    self.combined_view_button.setEnabled(True)
-                    self.individual_view_button.setEnabled(True)
-                    self.comparison_view_button.setEnabled(True)
+                    if not self.raw_tab_created:
+                        self.create_tab("Raw", self.open_individual_view_window, self.open_comparison_view_window,
+                                        self.open_combined_view_window)
+                        self.raw_tab_created = True
+                        self.manipulate_button.setEnabled(True)
                     self.load_label.setText("Files Loaded")
                     self.load_display_widget.setStyleSheet("background-color: green;")
                 else:
@@ -587,6 +790,30 @@ class MyWindow(QMainWindow):
     def open_combined_view_window(self):
         dialog = CombinedView(e0=self.esc0_data,e1=self.esc1_data,e2=self.esc2_data,e3=self.esc3_data)
         dialog.exec()
+
+    def open_individual_view_window_step_test(self):
+        self.plot_window = IndividualView(e0=self.step_esc0,e1=self.step_esc1,e2=self.step_esc2,e3=self.step_esc3)
+        self.plot_window.exec()
+
+    def open_comparison_view_window_step_test(self):
+        dialog = ComparisonView(e0=self.step_esc0,e1=self.step_esc1,e2=self.step_esc2,e3=self.step_esc3,post_process=True)
+        dialog.exec()
+
+    def open_combined_view_window_step_test(self):
+        dialog = CombinedView(e0=self.step_esc0,e1=self.step_esc1,e2=self.step_esc2,e3=self.step_esc3,post_process=True)
+        dialog.exec()
+
+    def open_individual_view_window_combined_step_test(self):
+        # Your function logic for Tab 3 here
+        pass
+
+    def open_comparison_view_window_combined_step_test(self):
+        # Your function logic for Tab 3 here
+        pass
+
+    def open_combined_view_window_combined_step_test(self):
+        # Your function logic for Tab 3 here
+        pass
 
 app = QApplication(sys.argv)
 window = MyWindow()

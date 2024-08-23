@@ -18,7 +18,7 @@ class EscData:
     timestamp_len = []
 
     def __init__(self,voltage,current,temp,e_rpm,t_duty,
-                 m_duty,phase_current,pwr,stat_1,stat_2,serial_number,timestamp_len):
+                 m_duty,phase_current,pwr,stat_1,stat_2,serial_number):
         self.voltage = copy.deepcopy(voltage)
         self.current = copy.deepcopy(current)
         self.temp = copy.deepcopy(temp)
@@ -131,7 +131,7 @@ def take_values_from_csv(fileName):
         s2_t.append((float(rows[i][9])))
         time_t.append(i)
 
-    objName = EscData(v_tmp,c_tmp,t_tmp,erpm_tmp,trtl_dt,mt_dt,phs_c,pwr_tmp,s1_t,s2_t,serial_int,time_t)
+    objName = EscData(v_tmp, c_tmp, t_tmp, erpm_tmp, trtl_dt, mt_dt, phs_c, pwr_tmp, s1_t, s2_t, serial_int)
 
     clr_temp_arrs()
 #    objName.display()
