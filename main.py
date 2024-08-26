@@ -1,23 +1,17 @@
-
-
-
-
-
-
-
 import os
 import sys
+import tempfile
 from pathlib import Path
+
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
+from PyQt6.QtCore import QUrl, Qt
+from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QVBoxLayout, QWidget, QDialog, QFileDialog, \
     QTabWidget, QListWidget, QHBoxLayout, QCheckBox, QLabel
-from PyQt6.QtWebEngineWidgets import QWebEngineView
-from PyQt6.QtCore import QUrl, Qt
-import tempfile
 from plotly.subplots import make_subplots
+
 from abstraction import take_values_from_csv, EscData
 from data_process import StepTest
 
@@ -686,7 +680,7 @@ class MyWindow(QMainWindow):
 
         self.save_button = QPushButton("Save Manipulated Data", self)
         self.save_button.clicked.connect(self.save_action)
-        self.save_button.setEnabled(False)
+        self.save_button.setEnabled(True)
         right_layout.addWidget(self.save_button)
 
     def create_tab(self, tab_name, individual_callback, comparison_callback, combined_callback):
@@ -713,13 +707,22 @@ class MyWindow(QMainWindow):
 
 
     def save_action(self):
-        pass
+        self.step_esc0 = StepTest(self.esc0_data, type=1,esc_id=0)
+        self.step_esc1 = StepTest(self.esc1_data, type=1,esc_id=1)
+        self.step_esc2 = StepTest(self.esc2_data, type=1,esc_id=2)
+        self.step_esc3 = StepTest(self.esc3_data, type=1,esc_id=3)
+        self.manipulate_label.setText("Combined Step Test")
+        self.manipulate_display_widget.setStyleSheet("background-color: green;")
+        self.save_button.setEnabled(True)
+        if not self.step_test_tab_created:
+            self.create_tab("Step Test", self.open_individual_view_window_combined_step_test, self.open_comparison_view_window_combined_step_test, self.open_combined_view_window_combined_step_test)
+            self.step_test_tab_created = True
     def manipulate_data_button(self):
 
-        self.step_esc0 = StepTest(self.esc0_data)
-        self.step_esc1 = StepTest(self.esc1_data)
-        self.step_esc2 = StepTest(self.esc2_data)
-        self.step_esc3 = StepTest(self.esc3_data)
+        self.step_esc0 = StepTest(self.esc0_data,type=0)
+        self.step_esc1 = StepTest(self.esc1_data,type=0)
+        self.step_esc2 = StepTest(self.esc2_data,type=0)
+        self.step_esc3 = StepTest(self.esc3_data,type=0)
 
         self.manipulate_label.setText("Step Test")
         self.manipulate_display_widget.setStyleSheet("background-color: green;")
@@ -799,7 +802,7 @@ class MyWindow(QMainWindow):
         dialog.exec()
 
     def open_individual_view_window_step_test(self):
-        self.plot_window = IndividualView(e0=self.step_esc0,e1=self.step_esc1,e2=self.step_esc2,e3=self.step_esc3)
+        self.plot_window = IndividualView(e0=self.esc0_data,e1=self.esc1_data,e2=self.esc2_data,e3=self.esc3_data)
         self.plot_window.exec()
 
     def open_comparison_view_window_step_test(self):
@@ -811,16 +814,15 @@ class MyWindow(QMainWindow):
         dialog.exec()
 
     def open_individual_view_window_combined_step_test(self):
-        # Your function logic for Tab 3 here
-        pass
-
+        self.plot_window = IndividualView(e0=self.esc0_data,e1=self.esc1_data,e2=self.esc2_data,e3=self.esc3_data)
+        self.plot_window.exec()
     def open_comparison_view_window_combined_step_test(self):
-        # Your function logic for Tab 3 here
-        pass
+        dialog = ComparisonView(e0=self.step_esc0,e1=self.step_esc1,e2=self.step_esc2,e3=self.step_esc3,post_process=True)
+        dialog.exec()
 
     def open_combined_view_window_combined_step_test(self):
-        # Your function logic for Tab 3 here
-        pass
+        dialog = CombinedView(e0=self.step_esc0,e1=self.step_esc1,e2=self.step_esc2,e3=self.step_esc3,post_process=True)
+        dialog.exec()
 
 app = QApplication(sys.argv)
 window = MyWindow()
