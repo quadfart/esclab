@@ -31,8 +31,6 @@ class PostProcess(EscData):
             self.find_zero_crossing_flight()
             print(self.zero_crossing)
             self.flight_syncro()
-            print("here11")
-
         else:
             print("Error: Post Process Type Not recognized.")
 
@@ -54,9 +52,6 @@ class PostProcess(EscData):
                 self.stat_2 = self.stat_2[i:]
             else:
                 break
-
-
-        # Crop from the end
         for i in range(len(self.t_duty) - 1, -1, -1):
             if self.t_duty[i] == 0:
                 # Crop all lists after the first zero from the end in t_duty
@@ -79,10 +74,8 @@ class PostProcess(EscData):
 
         num_points = step_end_idx - step_start_idx + 1
 
-        # Calculate the time increment for this step
         dt = duration_sec / num_points
 
-        # Create the time array for this step
         t_temp = np.arange(0, duration_sec, dt)
         time.extend(t_temp)
 
@@ -113,16 +106,12 @@ class PostProcess(EscData):
         self.zero_crossing.append((end_index[-1], start_index[-1]))
 
     def combined_step_syncro(self, esc_id, step_duration_sec=35):
-        # Initialize the arrays for storing synchronized data
         time, rpm, current, motor_duty, temp, throttle_duty, voltage = [], [], [], [], [], [], []
 
-        # Get the running array for the given ESC ID
         running_arr = self.running_array[esc_id]
 
-        # Total duration is step_duration_sec multiplied by the number of steps
         total_duration_sec = step_duration_sec * len(running_arr)
 
-        # Calculate the overall time increment based on total duration
         overall_dt = total_duration_sec / len(running_arr)
 
         current_time = 0
@@ -131,24 +120,18 @@ class PostProcess(EscData):
             if run:  # Only process steps where the ESC is running
                 (step_start_idx, step_end_idx) = self.zero_crossing[j]
                 j+=1
-                # Calculate the number of data points in the current step
                 num_points = step_end_idx - step_start_idx + 1
 
-                # Calculate the time increment for this step
                 dt = step_duration_sec / num_points
 
-                # Create the time array for this step
                 t_temp = np.arange(i_stp * step_duration_sec, (i_stp + 1) * step_duration_sec, dt)
                 time.extend(t_temp)
-
-                # Extend the other arrays with the data for this step
                 rpm.extend(self.rpm[step_start_idx:step_end_idx + 1])
                 current.extend(self.current[step_start_idx:step_end_idx + 1])
                 motor_duty.extend(self.m_duty[step_start_idx:step_end_idx + 1])
                 temp.extend(self.temp[step_start_idx:step_end_idx + 1])
                 throttle_duty.extend(self.t_duty[step_start_idx:step_end_idx + 1])
                 voltage.extend(self.voltage[step_start_idx:step_end_idx + 1])
-
 
             j = 0
             current_time += step_duration_sec
@@ -162,16 +145,14 @@ class PostProcess(EscData):
 
         if not running_arr[-1]:
             num_points = len(time) - len(rpm)
-            print("NumPoints",num_points)# Number of points needed to fill the final segment
+            print("NumPoints",num_points)
             if num_points > 0:
                 t_temp = np.linspace(current_time, current_time + step_duration_sec, num_points, endpoint=False)
                 time.extend(t_temp)
 
-        # Ensure that time array length matches other arrays
         if len(time) != len(rpm):
             raise ValueError("Mismatch in the length of time and data arrays")
 
-        # Update the object's attributes with the synchronized data
         self.rpm = rpm
         self.current = current
         self.m_duty = motor_duty
@@ -180,7 +161,6 @@ class PostProcess(EscData):
         self.voltage = voltage
         self.timestamp = time
 
-        # Print the final timestamp to check the total time
         print(f"Final timestamp: {self.timestamp[-1]} seconds, Length {len(self.timestamp)}")
 
     def find_zero_crossing(self):
@@ -195,8 +175,6 @@ class PostProcess(EscData):
 
         for i in (range(len(end_index))):
             self.zero_crossing.append((end_index[i], start_index[i+1]))
-
-
 
     def compute_rpm(self,var=23):
         return np.array(self.e_rpm) / var
@@ -269,12 +247,3 @@ class PostProcess(EscData):
         self.timestamp = time
 
         print("Step Test Values Set.")
-
-    def plot_throttle_duty(self, step_cmd_idx):
-        print("ThrottleDuty Data:",self.t_duty)
-        plt.figure()
-        plt.plot(self.t_duty)
-        for idx in step_cmd_idx:
-            plt.axvline(x=idx, color='r', linestyle='--')
-        plt.show(block=False)
-

@@ -1,19 +1,165 @@
+import json
 import os
 import sys
 import tempfile
+from ctypes import py_object
 from pathlib import Path
-
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from PyQt6.QtCore import QUrl, Qt
+from PyQt6.QtCore import pyqtSlot, QObject, QUrl
 from PyQt6.QtWebEngineWidgets import QWebEngineView
+from PyQt6.QtWebChannel import QWebChannel
 from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QVBoxLayout, QWidget, QDialog, QFileDialog, \
-    QTabWidget, QListWidget, QHBoxLayout, QCheckBox, QLabel
+    QTabWidget, QListWidget, QHBoxLayout, QCheckBox, QLabel, QComboBox
 from plotly.subplots import make_subplots
 
 from abstraction import take_values_from_csv, EscData
 from data_process import PostProcess
+
+
+class ProcessTool(QDialog):
+    def __init__(self, e0, e1, e2, e3):
+        super().__init__()
+        self.esc0 = e0
+        self.esc1 = e1
+        self.esc2 = e2
+        self.esc3 = e3
+
+        # Initialize variables to store x-axis range values
+        self.x_start = None
+        self.x_end = None
+
+        # Set window title and size
+        self.setWindowTitle("Process Tool")
+        self.setGeometry(150, 150, 800, 600)
+        self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowMaximizeButtonHint)
+
+        # Main layout
+        main_layout = QHBoxLayout(self)
+
+        # Tab widget with plots
+        self.tab_widget = QTabWidget()
+        self.create_tab("ESC 0", self.create_plot(self.esc0, "ESC 0"))
+        self.create_tab("ESC 1", self.create_plot(self.esc1, "ESC 1"))
+        self.create_tab("ESC 2", self.create_plot(self.esc2, "ESC 2"))
+        self.create_tab("ESC 3", self.create_plot(self.esc3, "ESC 3"))
+
+        # Add the tab widget to the main layout
+        main_layout.addWidget(self.tab_widget, stretch=3)  # Stretch factor for the tab widget
+
+        # Right side layout with dropdown and content box
+        right_layout = QVBoxLayout()
+        self.dropdown = QComboBox()
+        self.dropdown.addItems(["Option 1", "Option 2", "Option 3"])
+        self.dropdown.currentIndexChanged.connect(self.update_content)
+
+        # Content box that changes based on dropdown selection
+        self.content_label = QLabel("Content for Option 1")
+        self.content_label.setAlignment(Qt.AlignmentFlag.AlignTop)
+
+        # Labels for x-axis range
+        self.x_range_label = QLabel("X-axis Range: Not selected")
+        self.x_range_label.setAlignment(Qt.AlignmentFlag.AlignTop)
+
+        # Add dropdown, content label, and x-range label to right layout
+        right_layout.addWidget(self.dropdown)
+        right_layout.addWidget(self.content_label)
+        right_layout.addWidget(self.x_range_label)
+        right_layout.addStretch(1)  # Add stretch factor for the layout
+
+        # Add the right layout to the main layout
+        right_widget = QWidget()
+        right_widget.setLayout(right_layout)
+        main_layout.addWidget(right_widget, stretch=1)  # Stretch factor for the right layout
+
+    def update_content(self, index):
+        # Update content based on dropdown selection
+        if index == 0:
+            self.content_label.setText("Content for Option 1")
+        elif index == 1:
+            self.content_label.setText("Content for Option 2")
+        elif index == 2:
+            self.content_label.setText("Content for Option 3")
+
+    def create_plot(self, esc, title):
+        try:
+            df = pd.DataFrame({
+                'Index': list(range(len(esc.voltage))),
+                'Voltage': esc.voltage,
+                'Current': esc.current,
+                'Temperature': esc.temp,
+                'eRPM': esc.e_rpm,
+                'Throttle Duty': esc.t_duty,
+                'Motor Duty': esc.m_duty,
+                'Phase Current': esc.phase_current,
+                'Power': esc.pwr,
+                'Status 1': esc.stat_1,
+                'Status 2': esc.stat_2,
+                'Serial Number': esc.serial_number
+            })
+
+            fig = px.line(df, x='Index', y=['Voltage', 'Current', 'Temperature', 'eRPM', 'Throttle Duty', 'Motor Duty',
+                                            'Phase Current', 'Power'],
+                          title=title + '  ' + 'Serial Number ' + esc.serial_number)
+
+            # Add a range selector box on the x-axis
+            fig.update_layout(
+                xaxis=dict(
+                    rangeslider=dict(visible=True),
+                    type="linear"
+                )
+            )
+
+            # Add a relayout event handler to capture the range selection
+            fig.update_layout(dragmode='select')
+
+            # This will allow capturing x-axis range changes
+            fig.update_layout(
+                newshape=dict(
+                    line_color="cyan",
+                    line_width=2,
+                ),
+                margin=dict(t=50, b=50, r=10, l=10)
+            )
+
+            return fig
+        except Exception as e:
+            print(f"Error in create_plot: {e}")
+            return px.Figure()
+
+    def create_tab(self, title, fig):
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".html") as tmp_file:
+            fig.write_html(tmp_file.name)
+            tmp_file_path = tmp_file.name
+
+        browser = QWebEngineView()
+        browser.setUrl(QUrl.fromLocalFile(tmp_file_path))
+
+        tab = QWidget()
+        layout = QVBoxLayout()
+        layout.addWidget(browser)
+        tab.setLayout(layout)
+        self.tab_widget.addTab(tab, title)
+
+        # Connect to the browser's signals to capture the selection
+        browser.page().runJavaScript("""
+            window.addEventListener('plotly_relayout', function(eventdata) {
+                if(eventdata['xaxis.range[0]'] !== undefined) {
+                    window.xStart = eventdata['xaxis.range[0]'];
+                    window.xEnd = eventdata['xaxis.range[1]'];
+                    // Update the labels in Python
+                    py_obj.update_xrange(window.xStart, window.xEnd);
+                }
+            });
+        """)
+
+    def update_xrange(self, x_start, x_end):
+        # Update the x-axis range values and the label
+        self.x_start = x_start
+        self.x_end = x_end
+        self.x_range_label.setText(f"X-axis Range: {self.x_start} to {self.x_end}")
 
 
 class CombinedView(QDialog):
@@ -619,11 +765,9 @@ class MyWindow(QMainWindow):
         self.logo_label = QLabel("Logo", self)  # Replace with actual logo if available
         left_layout.addWidget(self.logo_label)
 
-        # Tabs for buttons
         self.buttons_tab = QTabWidget(self)
         left_layout.addWidget(self.buttons_tab)
 
-        # Initially, no tabs are created
         self.raw_tab_created = False
         self.step_test_tab_created = False
         self.combined_step_test_tab_created = False
@@ -633,7 +777,6 @@ class MyWindow(QMainWindow):
         right_layout.setSpacing(10)
         main_layout.addLayout(right_layout, stretch=1)
 
-        # Folder button and display widget on the right side
         self.folder_button = QPushButton("Select Folder", self)
         self.folder_button.clicked.connect(self.open_folder_browser)
         right_layout.addWidget(self.folder_button)
@@ -687,6 +830,10 @@ class MyWindow(QMainWindow):
         self.flight_test_button.clicked.connect(self.flight_test)
         self.flight_test_button.setEnabled(True)
         right_layout.addWidget(self.flight_test_button)
+
+        self.tool_button = QPushButton("Process Tool",self)
+        self.tool_button.clicked.connect(self.open_process_tool_window)
+        right_layout.addWidget(self.tool_button)
 
     def create_tab(self, tab_name, individual_callback, comparison_callback, combined_callback):
         tab_widget = QWidget()
@@ -780,7 +927,7 @@ class MyWindow(QMainWindow):
         if folder_name:
             print(f"Selected folder: {folder_name}")
 
-            self.files_path = []  # Clear the previous file paths
+            self.files_path = []
             valid_folder = False
 
             for i in range(4):
@@ -796,7 +943,6 @@ class MyWindow(QMainWindow):
             else:
                 self.load_button.setEnabled(False)  # Disable button if no files are found
 
-            # Update folder path display
             self.path_label.setText(f"Selected Folder: {folder_name}")
             if valid_folder:
                 self.path_display_widget.setStyleSheet("background-color: green;")
@@ -808,34 +954,27 @@ class MyWindow(QMainWindow):
     def open_individual_view_window(self):
         self.plot_window = IndividualView(e0=self.esc0_data,e1=self.esc1_data,e2=self.esc2_data,e3=self.esc3_data)
         self.plot_window.exec()
-
     def open_comparison_view_window(self):
         dialog = ComparisonView(e0=self.esc0_data,e1=self.esc1_data,e2=self.esc2_data,e3=self.esc3_data)
         dialog.exec()
-
     def open_combined_view_window(self):
         dialog = CombinedView(e0=self.esc0_data,e1=self.esc1_data,e2=self.esc2_data,e3=self.esc3_data)
         dialog.exec()
-
     def open_individual_view_window_step_test(self):
         self.plot_window = IndividualView(e0=self.esc0_data,e1=self.esc1_data,e2=self.esc2_data,e3=self.esc3_data)
         self.plot_window.exec()
-
     def open_comparison_view_window_step_test(self):
         dialog = ComparisonView(e0=self.post_process_esc0, e1=self.post_process_esc1, e2=self.post_process_esc2, e3=self.post_process_esc3, post_process=True)
         dialog.exec()
-
     def open_combined_view_window_step_test(self):
         dialog = CombinedView(e0=self.post_process_esc0, e1=self.post_process_esc1, e2=self.post_process_esc2, e3=self.post_process_esc3, post_process=True)
         dialog.exec()
-
     def open_individual_view_window_combined_step_test(self):
         self.plot_window = IndividualView(e0=self.esc0_data,e1=self.esc1_data,e2=self.esc2_data,e3=self.esc3_data)
         self.plot_window.exec()
     def open_comparison_view_window_combined_step_test(self):
         dialog = ComparisonView(e0=self.post_process_esc0, e1=self.post_process_esc1, e2=self.post_process_esc2, e3=self.post_process_esc3, post_process=True)
         dialog.exec()
-
     def open_combined_view_window_combined_step_test(self):
         dialog = CombinedView(e0=self.post_process_esc0, e1=self.post_process_esc1, e2=self.post_process_esc2, e3=self.post_process_esc3, post_process=True)
         dialog.exec()
@@ -845,10 +984,12 @@ class MyWindow(QMainWindow):
     def open_comparison_view_window_flight_test(self):
         dialog = ComparisonView(e0=self.post_process_esc0, e1=self.post_process_esc1, e2=self.post_process_esc2, e3=self.post_process_esc3, post_process=True)
         dialog.exec()
-
     def open_combined_view_window_flight_test(self):
         dialog = CombinedView(e0=self.post_process_esc0, e1=self.post_process_esc1, e2=self.post_process_esc2, e3=self.post_process_esc3, post_process=True)
         dialog.exec()
+    def open_process_tool_window(self):
+        self.plot_window = ProcessTool(e0=self.esc0_data,e1=self.esc1_data,e2=self.esc2_data,e3=self.esc3_data)
+        self.plot_window.exec()
 
 app = QApplication(sys.argv)
 window = MyWindow()
