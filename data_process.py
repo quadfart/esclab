@@ -20,7 +20,7 @@ class StepTest(EscData):
             self.synchronize_steps(self.detect_step_commands())
             self.crop_data()
         elif type == 1:
-            self.start_end_crop()
+            #self.start_end_crop()
             print("type==1","esc_id:",esc_id)
             self.find_zero_crossing()
             print(self.zero_crossing)
@@ -149,8 +149,10 @@ class StepTest(EscData):
 
         # Ensure that the number of start and end indices are the same
         # to avoid index errors when appending to zero_crossing
-        min_len = min(len(start_index), len(end_index))
-        self.zero_crossing = [(end_index[i],start_index[i]) for i in range(min_len)]
+        for i in (range(len(end_index))):
+            self.zero_crossing.append((end_index[i], start_index[i+1]))
+
+
 
     def compute_rpm(self,var=23):
         return np.array(self.e_rpm) / var
