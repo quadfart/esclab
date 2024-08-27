@@ -7,7 +7,7 @@ from pandas.core import indexes
 from abstraction import EscData, take_values_from_csv
 
 
-class StepTest(EscData):
+class PostProcess(EscData):
     def __init__(self, esc_data,type=0,esc_id=0):
         super().__init__(esc_data.voltage, esc_data.current, esc_data.temp, esc_data.e_rpm, esc_data.t_duty,
                          esc_data.m_duty, esc_data.phase_current, esc_data.pwr, esc_data.stat_1, esc_data.stat_2,esc_data.serial_number)
@@ -27,7 +27,12 @@ class StepTest(EscData):
             self.combined_step_syncro(esc_id=esc_id)
 
         elif type == 2:
-            pass
+            self.start_end_crop()
+            self.find_zero_crossing_flight()
+            print(self.zero_crossing)
+            self.flight_syncro()
+            print("here11")
+
         else:
             print("Error: Post Process Type Not recognized.")
 
@@ -47,7 +52,9 @@ class StepTest(EscData):
                 self.pwr = self.pwr[i:]
                 self.stat_1 = self.stat_1[i:]
                 self.stat_2 = self.stat_2[i:]
+            else:
                 break
+
 
         # Crop from the end
         for i in range(len(self.t_duty) - 1, -1, -1):
@@ -64,7 +71,46 @@ class StepTest(EscData):
                 self.pwr = self.pwr[:i + 1]
                 self.stat_1 = self.stat_1[:i + 1]
                 self.stat_2 = self.stat_2[:i + 1]
+            else:
                 break
+    def flight_syncro(self,duration_sec=100):
+        time, rpm, current, motor_duty, temp, throttle_duty, voltage = [], [], [], [], [], [], []
+        (step_start_idx, step_end_idx) = self.zero_crossing[0]
+
+        num_points = step_end_idx - step_start_idx + 1
+
+        # Calculate the time increment for this step
+        dt = duration_sec / num_points
+
+        # Create the time array for this step
+        t_temp = np.arange(0, duration_sec, dt)
+        time.extend(t_temp)
+
+        rpm.extend(self.rpm[step_start_idx:step_end_idx + 1])
+        current.extend(self.current[step_start_idx:step_end_idx + 1])
+        motor_duty.extend(self.m_duty[step_start_idx:step_end_idx + 1])
+        temp.extend(self.temp[step_start_idx:step_end_idx + 1])
+        throttle_duty.extend(self.t_duty[step_start_idx:step_end_idx + 1])
+        voltage.extend(self.voltage[step_start_idx:step_end_idx + 1])
+
+        self.rpm = rpm
+        self.current = current
+        self.m_duty = motor_duty
+        self.temp = temp
+        self.t_duty = throttle_duty
+        self.voltage = voltage
+        self.timestamp = time
+
+    def find_zero_crossing_flight(self):
+        start_index = []
+        end_index = []
+
+        for i in range(1, len(self.timestamp)):
+            if self.t_duty[i] == 0 and self.t_duty[i - 1] != 0:
+                start_index.append(self.timestamp[i])
+            elif self.t_duty[i] != 0 and self.t_duty[i - 1] == 0:
+                end_index.append(self.timestamp[i])
+        self.zero_crossing.append((end_index[-1], start_index[-1]))
 
     def combined_step_syncro(self, esc_id, step_duration_sec=35):
         # Initialize the arrays for storing synchronized data
@@ -147,8 +193,6 @@ class StepTest(EscData):
             elif self.t_duty[i] != 0 and self.t_duty[i - 1] == 0:
                 end_index.append(self.timestamp[i])
 
-        # Ensure that the number of start and end indices are the same
-        # to avoid index errors when appending to zero_crossing
         for i in (range(len(end_index))):
             self.zero_crossing.append((end_index[i], start_index[i+1]))
 
