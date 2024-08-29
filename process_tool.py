@@ -49,14 +49,17 @@ class ProcessTool(QDialog):
 
 
         self.step_box_layout = QVBoxLayout()
+        self.step_test_label = QLabel("Step Test Post Process:")
+        self.step_box_layout.addWidget(self.step_test_label)
         self.combined_step_box_layout = QVBoxLayout()
+        self.combined_step_test_label = QLabel("Combined Step Test Post Process:")
+        self.combined_step_box_layout.addWidget(self.combined_step_test_label)
         self.flight_box_layout = QVBoxLayout()
+        self.flight_test_label = QLabel("Flight Test Post Process:")
+        self.flight_box_layout.addWidget(self.flight_test_label)
 
-        self.content_label = QLabel("Select Test")
-        self.content_label.setAlignment(Qt.AlignmentFlag.AlignTop)
         # Add dropdown, content label, and x-range label to right layout
         right_layout.addWidget(self.dropdown)
-        right_layout.addWidget(self.content_label)
         right_layout.addWidget(self.x_range_label_esc0)
         right_layout.addWidget(self.x_range_label_esc1)
         right_layout.addWidget(self.x_range_label_esc2)
@@ -232,6 +235,19 @@ class ProcessTool(QDialog):
             self.esc2.t_duty[value]=0
         elif esc == 3:
             self.esc3.t_duty[value]=0
+        self.ax0.clear()
+        self.ax0.plot(self.esc0.timestamp, self.esc0.t_duty)
+        self.canvas.draw()
+        self.ax1.clear()
+        self.ax1.plot(self.esc1.timestamp, self.esc1.t_duty)
+        self.canvas1.draw()
+        self.ax2.clear()
+        self.ax2.plot(self.esc2.timestamp, self.esc2.t_duty)
+        self.canvas2.draw()
+        self.ax3.clear()
+        self.ax3.plot(self.esc3.timestamp, self.esc3.t_duty)
+        self.canvas3.draw()
+
     def get_max_index(self,esc):
         if esc == 0:
             return int(len(self.esc0.timestamp)-1)
