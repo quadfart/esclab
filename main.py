@@ -14,12 +14,18 @@ from PyQt6.QtWebChannel import QWebChannel
 from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QVBoxLayout, QWidget, QDialog, QFileDialog, \
     QTabWidget, QListWidget, QHBoxLayout, QCheckBox, QLabel, QComboBox
 from plotly.subplots import make_subplots
+import matplotlib.pyplot as plt
+from PyQt6.QtCore import Qt
+from matplotlib.backends.backend_qt import NavigationToolbar2QT
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.widgets import SpanSelector
+
 
 from abstraction import take_values_from_csv, EscData
 from data_process import PostProcess
+from process_tool import ProcessTool
 
-
-class ProcessTool(QDialog):
+class ProcessTool1(QDialog):
     def __init__(self, e0, e1, e2, e3):
         super().__init__()
         self.esc0 = e0
@@ -988,8 +994,8 @@ class MyWindow(QMainWindow):
         dialog = CombinedView(e0=self.post_process_esc0, e1=self.post_process_esc1, e2=self.post_process_esc2, e3=self.post_process_esc3, post_process=True)
         dialog.exec()
     def open_process_tool_window(self):
-        self.plot_window = ProcessTool(e0=self.esc0_data,e1=self.esc1_data,e2=self.esc2_data,e3=self.esc3_data)
-        self.plot_window.exec()
+        dialog = ProcessTool(e0=self.esc0_data,e1=self.esc1_data,e2=self.esc2_data,e3=self.esc3_data)
+        dialog.exec()
 
 app = QApplication(sys.argv)
 window = MyWindow()
