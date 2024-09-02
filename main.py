@@ -1,3 +1,4 @@
+import copy
 import json
 import os
 import sys
@@ -24,149 +25,6 @@ from matplotlib.widgets import SpanSelector
 from abstraction import take_values_from_csv, EscData
 from data_process import PostProcess
 from process_tool import ProcessTool
-
-class ProcessTool1(QDialog):
-    def __init__(self, e0, e1, e2, e3):
-        super().__init__()
-        self.esc0 = e0
-        self.esc1 = e1
-        self.esc2 = e2
-        self.esc3 = e3
-
-        # Initialize variables to store x-axis range values
-        self.x_start = None
-        self.x_end = None
-
-        # Set window title and size
-        self.setWindowTitle("Process Tool")
-        self.setGeometry(150, 150, 800, 600)
-        self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowMaximizeButtonHint)
-
-        # Main layout
-        main_layout = QHBoxLayout(self)
-
-        # Tab widget with plots
-        self.tab_widget = QTabWidget()
-        self.create_tab("ESC 0", self.create_plot(self.esc0, "ESC 0"))
-        self.create_tab("ESC 1", self.create_plot(self.esc1, "ESC 1"))
-        self.create_tab("ESC 2", self.create_plot(self.esc2, "ESC 2"))
-        self.create_tab("ESC 3", self.create_plot(self.esc3, "ESC 3"))
-
-        # Add the tab widget to the main layout
-        main_layout.addWidget(self.tab_widget, stretch=3)  # Stretch factor for the tab widget
-
-        # Right side layout with dropdown and content box
-        right_layout = QVBoxLayout()
-        self.dropdown = QComboBox()
-        self.dropdown.addItems(["Option 1", "Option 2", "Option 3"])
-        self.dropdown.currentIndexChanged.connect(self.update_content)
-
-        # Content box that changes based on dropdown selection
-        self.content_label = QLabel("Content for Option 1")
-        self.content_label.setAlignment(Qt.AlignmentFlag.AlignTop)
-
-        # Labels for x-axis range
-        self.x_range_label = QLabel("X-axis Range: Not selected")
-        self.x_range_label.setAlignment(Qt.AlignmentFlag.AlignTop)
-
-        # Add dropdown, content label, and x-range label to right layout
-        right_layout.addWidget(self.dropdown)
-        right_layout.addWidget(self.content_label)
-        right_layout.addWidget(self.x_range_label)
-        right_layout.addStretch(1)  # Add stretch factor for the layout
-
-        # Add the right layout to the main layout
-        right_widget = QWidget()
-        right_widget.setLayout(right_layout)
-        main_layout.addWidget(right_widget, stretch=1)  # Stretch factor for the right layout
-
-    def update_content(self, index):
-        # Update content based on dropdown selection
-        if index == 0:
-            self.content_label.setText("Content for Option 1")
-        elif index == 1:
-            self.content_label.setText("Content for Option 2")
-        elif index == 2:
-            self.content_label.setText("Content for Option 3")
-
-    def create_plot(self, esc, title):
-        try:
-            df = pd.DataFrame({
-                'Index': list(range(len(esc.voltage))),
-                'Voltage': esc.voltage,
-                'Current': esc.current,
-                'Temperature': esc.temp,
-                'eRPM': esc.e_rpm,
-                'Throttle Duty': esc.t_duty,
-                'Motor Duty': esc.m_duty,
-                'Phase Current': esc.phase_current,
-                'Power': esc.pwr,
-                'Status 1': esc.stat_1,
-                'Status 2': esc.stat_2,
-                'Serial Number': esc.serial_number
-            })
-
-            fig = px.line(df, x='Index', y=['Voltage', 'Current', 'Temperature', 'eRPM', 'Throttle Duty', 'Motor Duty',
-                                            'Phase Current', 'Power'],
-                          title=title + '  ' + 'Serial Number ' + esc.serial_number)
-
-            # Add a range selector box on the x-axis
-            fig.update_layout(
-                xaxis=dict(
-                    rangeslider=dict(visible=True),
-                    type="linear"
-                )
-            )
-
-            # Add a relayout event handler to capture the range selection
-            fig.update_layout(dragmode='select')
-
-            # This will allow capturing x-axis range changes
-            fig.update_layout(
-                newshape=dict(
-                    line_color="cyan",
-                    line_width=2,
-                ),
-                margin=dict(t=50, b=50, r=10, l=10)
-            )
-
-            return fig
-        except Exception as e:
-            print(f"Error in create_plot: {e}")
-            return px.Figure()
-
-    def create_tab(self, title, fig):
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".html") as tmp_file:
-            fig.write_html(tmp_file.name)
-            tmp_file_path = tmp_file.name
-
-        browser = QWebEngineView()
-        browser.setUrl(QUrl.fromLocalFile(tmp_file_path))
-
-        tab = QWidget()
-        layout = QVBoxLayout()
-        layout.addWidget(browser)
-        tab.setLayout(layout)
-        self.tab_widget.addTab(tab, title)
-
-        # Connect to the browser's signals to capture the selection
-        browser.page().runJavaScript("""
-            window.addEventListener('plotly_relayout', function(eventdata) {
-                if(eventdata['xaxis.range[0]'] !== undefined) {
-                    window.xStart = eventdata['xaxis.range[0]'];
-                    window.xEnd = eventdata['xaxis.range[1]'];
-                    // Update the labels in Python
-                    py_obj.update_xrange(window.xStart, window.xEnd);
-                }
-            });
-        """)
-
-    def update_xrange(self, x_start, x_end):
-        # Update the x-axis range values and the label
-        self.x_start = x_start
-        self.x_end = x_end
-        self.x_range_label.setText(f"X-axis Range: {self.x_start} to {self.x_end}")
-
 
 class CombinedView(QDialog):
     def __init__(self,e0,e1,e2,e3,post_process=False):
@@ -777,6 +635,7 @@ class MyWindow(QMainWindow):
         self.raw_tab_created = False
         self.step_test_tab_created = False
         self.combined_step_test_tab_created = False
+        self.flight_test_tab_created = False
 
         # Right side layout
         right_layout = QVBoxLayout()
@@ -812,30 +671,7 @@ class MyWindow(QMainWindow):
         self.load_display_widget_layout.addWidget(self.load_label)
         self.load_display_widget.setStyleSheet("background-color: gray;")
 
-        self.step_test_button = QPushButton("Step Test", self)
-        self.step_test_button.clicked.connect(self.step_test)
-        self.step_test_button.setEnabled(False)
-        right_layout.addWidget(self.step_test_button)
 
-        self.step_test_display_widget = QWidget()
-        self.step_test_display_widget.setFixedHeight(30)
-        right_layout.addWidget(self.step_test_display_widget)
-
-        self.step_test_label = QLabel("No Action!", self)
-        self.step_test_display_widget_layout = QVBoxLayout()
-        self.step_test_display_widget.setLayout(self.step_test_display_widget_layout)
-        self.step_test_display_widget_layout.addWidget(self.step_test_label)
-        self.step_test_display_widget.setStyleSheet("background-color: gray;")
-
-        self.combined_test_button = QPushButton("Combined Step Test", self)
-        self.combined_test_button.clicked.connect(self.combined_step_test)
-        self.combined_test_button.setEnabled(True)
-        right_layout.addWidget(self.combined_test_button)
-
-        self.flight_test_button = QPushButton("Flight Step Test", self)
-        self.flight_test_button.clicked.connect(self.flight_test)
-        self.flight_test_button.setEnabled(True)
-        right_layout.addWidget(self.flight_test_button)
 
         self.tool_button = QPushButton("Process Tool",self)
         self.tool_button.clicked.connect(self.open_process_tool_window)
@@ -863,41 +699,35 @@ class MyWindow(QMainWindow):
 
         self.buttons_tab.addTab(tab_widget, tab_name)
 
-    def flight_test(self):
-        self.post_process_esc0 = PostProcess(self.esc0_data,type=2)
-        self.post_process_esc1 = PostProcess(self.esc1_data,type=2)
-        self.post_process_esc2 = PostProcess(self.esc2_data,type=2)
-        self.post_process_esc3 = PostProcess(self.esc3_data,type=2)
-        self.step_test_label.setText("Flight Test")
-        self.step_test_display_widget.setStyleSheet("background-color: green;")
-        self.combined_test_button.setEnabled(True)
-        if not self.step_test_tab_created:
-            self.create_tab("Flight Test", self.open_individual_view_window_flight_test, self.open_comparison_view_window_flight_test, self.open_combined_view_window_flight_test)
-            self.step_test_tab_created = True
+    def flight_test(self,e0,e1,e2,e3):
+        flight_e0 = PostProcess(e0,type=2)
+        flight_e1 = PostProcess(e1,type=2)
+        flight_e2 = PostProcess(e2,type=2)
+        flight_e3 = PostProcess(e3,type=2)
 
-    def combined_step_test(self):
-        self.post_process_esc0 = PostProcess(self.esc0_data, type=1, esc_id=0)
-        self.post_process_esc1 = PostProcess(self.esc1_data, type=1, esc_id=1)
-        self.post_process_esc2 = PostProcess(self.esc2_data, type=1, esc_id=2)
-        self.post_process_esc3 = PostProcess(self.esc3_data, type=1, esc_id=3)
-        self.step_test_label.setText("Combined Step Test")
-        self.step_test_display_widget.setStyleSheet("background-color: green;")
-        self.combined_test_button.setEnabled(True)
-        if not self.step_test_tab_created:
-            self.create_tab("Combined Step Test", self.open_individual_view_window_combined_step_test, self.open_comparison_view_window_combined_step_test, self.open_combined_view_window_combined_step_test)
-            self.step_test_tab_created = True
-    def step_test(self):
+        if not self.flight_test_tab_created:
+            self.create_tab("Flight Test", self.open_individual_view_window_flight_test,lambda: self.open_comparison_view_window_flight_test(e0=flight_e0,e1=flight_e1,e2=flight_e2,e3=flight_e3),lambda: self.open_combined_view_window_flight_test(e0=flight_e0,e1=flight_e1,e2=flight_e2,e3=flight_e3))
+            self.flight_test_tab_created = True
 
-        self.post_process_esc0 = PostProcess(self.esc0_data, type=0)
-        self.post_process_esc1 = PostProcess(self.esc1_data, type=0)
-        self.post_process_esc2 = PostProcess(self.esc2_data, type=0)
-        self.post_process_esc3 = PostProcess(self.esc3_data, type=0)
+    def combined_step_test(self,e0,e1,e2,e3):
+        combined_e0 = copy.deepcopy(PostProcess(e0, type=1, esc_id=0))
+        combined_e1 = copy.deepcopy(PostProcess(e1, type=1, esc_id=1))
+        combined_e2 = copy.deepcopy(PostProcess(e2, type=1, esc_id=2))
+        combined_e3 = copy.deepcopy(PostProcess(e3, type=1, esc_id=3))
 
-        self.step_test_label.setText("Step Test")
-        self.step_test_display_widget.setStyleSheet("background-color: green;")
-        self.combined_test_button.setEnabled(True)
+        if not self.combined_step_test_tab_created:
+            self.create_tab("Combined Step Test", self.open_individual_view_window_combined_step_test,lambda: self.open_comparison_view_window_combined_step_test(e0=combined_e0,e1=combined_e1,e2=combined_e2,e3=combined_e3),lambda: self.open_combined_view_window_combined_step_test(e0=combined_e0,e1=combined_e1,e2=combined_e2,e3=combined_e3))
+            self.combined_step_test_tab_created = True
+    def step_test(self,e0,e1,e2,e3):
+
+        step_e0 = copy.deepcopy(PostProcess(e0, type=0))
+        step_e1 = copy.deepcopy(PostProcess(e1, type=0))
+        step_e2 = copy.deepcopy(PostProcess(e2, type=0))
+        step_e3 = copy.deepcopy(PostProcess(e3, type=0))
+
+
         if not self.step_test_tab_created:
-            self.create_tab("Step Test", self.open_individual_view_window_step_test, self.open_comparison_view_window_step_test, self.open_combined_view_window_step_test)
+            self.create_tab("Step Test", self.open_individual_view_window_step_test,lambda : self.open_comparison_view_window_step_test(e0=step_e0,e1=step_e1,e2=step_e2,e3=step_e3), lambda : self.open_combined_view_window_step_test(e0=step_e0,e1=step_e1,e2=step_e2,e3=step_e3))
             self.step_test_tab_created = True
 
     def load_data_button(self):
@@ -969,32 +799,32 @@ class MyWindow(QMainWindow):
     def open_individual_view_window_step_test(self):
         self.plot_window = IndividualView(e0=self.esc0_data,e1=self.esc1_data,e2=self.esc2_data,e3=self.esc3_data)
         self.plot_window.exec()
-    def open_comparison_view_window_step_test(self):
-        dialog = ComparisonView(e0=self.post_process_esc0, e1=self.post_process_esc1, e2=self.post_process_esc2, e3=self.post_process_esc3, post_process=True)
+    def open_comparison_view_window_step_test(self,e0,e1,e2,e3):
+        dialog = ComparisonView(e0=e0,e1=e1,e2=e2,e3=e3, post_process=True)
         dialog.exec()
-    def open_combined_view_window_step_test(self):
-        dialog = CombinedView(e0=self.post_process_esc0, e1=self.post_process_esc1, e2=self.post_process_esc2, e3=self.post_process_esc3, post_process=True)
+    def open_combined_view_window_step_test(self,e0,e1,e2,e3):
+        dialog = CombinedView(e0=e0,e1=e1,e2=e2,e3=e3, post_process=True)
         dialog.exec()
     def open_individual_view_window_combined_step_test(self):
         self.plot_window = IndividualView(e0=self.esc0_data,e1=self.esc1_data,e2=self.esc2_data,e3=self.esc3_data)
         self.plot_window.exec()
-    def open_comparison_view_window_combined_step_test(self):
-        dialog = ComparisonView(e0=self.post_process_esc0, e1=self.post_process_esc1, e2=self.post_process_esc2, e3=self.post_process_esc3, post_process=True)
+    def open_comparison_view_window_combined_step_test(self,e0,e1,e2,e3):
+        dialog = ComparisonView(e0=e0,e1=e1,e2=e2,e3=e3, post_process=True)
         dialog.exec()
-    def open_combined_view_window_combined_step_test(self):
-        dialog = CombinedView(e0=self.post_process_esc0, e1=self.post_process_esc1, e2=self.post_process_esc2, e3=self.post_process_esc3, post_process=True)
+    def open_combined_view_window_combined_step_test(self,e0,e1,e2,e3):
+        dialog = CombinedView(e0=e0,e1=e1,e2=e2,e3=e3, post_process=True)
         dialog.exec()
     def open_individual_view_window_flight_test(self):
         self.plot_window = IndividualView(e0=self.esc0_data,e1=self.esc1_data,e2=self.esc2_data,e3=self.esc3_data)
         self.plot_window.exec()
-    def open_comparison_view_window_flight_test(self):
-        dialog = ComparisonView(e0=self.post_process_esc0, e1=self.post_process_esc1, e2=self.post_process_esc2, e3=self.post_process_esc3, post_process=True)
+    def open_comparison_view_window_flight_test(self,e0,e1,e2,e3):
+        dialog = ComparisonView(e0=e0,e1=e1,e2=e2,e3=e3, post_process=True)
         dialog.exec()
-    def open_combined_view_window_flight_test(self):
-        dialog = CombinedView(e0=self.post_process_esc0, e1=self.post_process_esc1, e2=self.post_process_esc2, e3=self.post_process_esc3, post_process=True)
+    def open_combined_view_window_flight_test(self,e0,e1,e2,e3):
+        dialog = CombinedView(e0=e0,e1=e1,e2=e2,e3=e3, post_process=True)
         dialog.exec()
     def open_process_tool_window(self):
-        dialog = ProcessTool(e0=self.esc0_data,e1=self.esc1_data,e2=self.esc2_data,e3=self.esc3_data)
+        dialog = ProcessTool(self)
         dialog.exec()
 
 app = QApplication(sys.argv)

@@ -1,5 +1,5 @@
 import sys
-
+import copy
 import matplotlib.widgets
 import numpy as np
 import matplotlib.pyplot as plt
@@ -9,14 +9,14 @@ from matplotlib.backends.backend_qt import NavigationToolbar2QT
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.widgets import SpanSelector
 from PyQt6.QtWidgets import QApplication, QDialog, QVBoxLayout, QGridLayout, QComboBox, QLabel, QWidget, QHBoxLayout, \
-    QPushButton, QSpinBox
-
+    QPushButton, QSpinBox, QStackedWidget
+from functools import partial
 from abstraction import EscData
 
-
 class ProcessTool(QDialog):
-    def __init__(self,e0,e1,e2,e3):
+    def __init__(self,main_window):
         super().__init__()
+        self.main_window = main_window
         self.setWindowTitle("Process Tool")
         self.setGeometry(150, 150, 1408, 800)
         self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowMaximizeButtonHint)
@@ -30,15 +30,21 @@ class ProcessTool(QDialog):
         layout.addLayout(grid_layout,0,0)
         layout.setColumnStretch(1,2)
 
-        self.esc0 : EscData = e0
-        self.esc1 : EscData = e1
-        self.esc2 : EscData = e2
-        self.esc3 : EscData = e3
+        self.esc0 : EscData = main_window.esc0_data
+        self.esc1 : EscData = main_window.esc1_data
+        self.esc2 : EscData = main_window.esc2_data
+        self.esc3 : EscData = main_window.esc3_data
+        self.cropped_esc0 = None
+        self.cropped_esc1 = None
+        self.cropped_esc2 = None
+        self.cropped_esc3 = None
+        self.crop_range = [(None,None),(None,None),(None,None),(None,None)]
 
-        right_layout = QVBoxLayout()
+        self.right_layout = QVBoxLayout()
         self.dropdown = QComboBox()
         self.dropdown.addItems(["Step Test", "Combined Step Test", "Flight Test"])
-        self.dropdown.currentIndexChanged.connect(self.update_content)
+        self.dropdown.setCurrentIndex(0)
+        self.dropdown.currentIndexChanged.connect(self.dropdown_text_set)
 
         # Content box that changes based on dropdown selection
         # Labels for x-axis range
@@ -46,26 +52,24 @@ class ProcessTool(QDialog):
         self.x_range_label_esc1 = QLabel("Esc 1 Range: Not selected")
         self.x_range_label_esc2 = QLabel("Esc 2 Range: Not selected")
         self.x_range_label_esc3 = QLabel("Esc 3 Range: Not selected")
+        self.crop_button = QPushButton("Crop")
+        self.crop_button.setEnabled(False)
+        self.crop_button.clicked.connect(self.crop_data)
+        self.post_process_run = QPushButton("Run Post-Process")
+        self.post_process_run.clicked.connect(self.on_button_clicked)
+        self.post_process_run.setEnabled(False)
 
-
-        self.step_box_layout = QVBoxLayout()
-        self.step_test_label = QLabel("Step Test Post Process:")
-        self.step_box_layout.addWidget(self.step_test_label)
-        self.combined_step_box_layout = QVBoxLayout()
-        self.combined_step_test_label = QLabel("Combined Step Test Post Process:")
-        self.combined_step_box_layout.addWidget(self.combined_step_test_label)
-        self.flight_box_layout = QVBoxLayout()
-        self.flight_test_label = QLabel("Flight Test Post Process:")
-        self.flight_box_layout.addWidget(self.flight_test_label)
 
         # Add dropdown, content label, and x-range label to right layout
-        right_layout.addWidget(self.dropdown)
-        right_layout.addWidget(self.x_range_label_esc0)
-        right_layout.addWidget(self.x_range_label_esc1)
-        right_layout.addWidget(self.x_range_label_esc2)
-        right_layout.addWidget(self.x_range_label_esc3)
-        right_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-        right_layout.setSpacing(5)
+        self.right_layout.addWidget(self.dropdown)
+        self.right_layout.addWidget(self.crop_button)
+        self.right_layout.addWidget(self.post_process_run)
+        self.right_layout.addWidget(self.x_range_label_esc0)
+        self.right_layout.addWidget(self.x_range_label_esc1)
+        self.right_layout.addWidget(self.x_range_label_esc2)
+        self.right_layout.addWidget(self.x_range_label_esc3)
+        self.right_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self.right_layout.setSpacing(5)
 
         # Place Zero Utility
         place_zero_button_layout = QHBoxLayout()
@@ -81,12 +85,12 @@ class ProcessTool(QDialog):
         place_zero_button_layout.addWidget(self.place_zero_button)
         place_zero_button_layout.addWidget(self.int_input)
         place_zero_button_layout.addWidget(self.input_esc)
-        right_layout.addLayout(place_zero_button_layout)
+        self.right_layout.addLayout(place_zero_button_layout)
         # Place Zero Utility
 
         # Add the right layout to the main layout
         right_widget = QWidget()
-        right_widget.setLayout(right_layout)
+        right_widget.setLayout(self.right_layout)
         layout.addWidget(right_widget,0,1)
 
         # Create a Matplotlib figure and axes
@@ -184,6 +188,8 @@ class ProcessTool(QDialog):
         # Print the start and end indices to the console
         print(f"Plot0:Selected range: Start index = {indmin}, End index = {indmax}")
         self.x_range_label_esc0.setText(f'Esc 0 Range : {indmin},{indmax}')
+        self.crop_range[0]=(int(indmin),int(indmax))
+        self.check_crop()
 
     def onselect1(self, xmin, xmax):
         indmin, indmax = np.searchsorted(self.esc1.timestamp, (xmin, xmax))
@@ -195,6 +201,9 @@ class ProcessTool(QDialog):
         # Print the start and end indices to the console
         print(f"Plot1:Selected range: Start index = {indmin}, End index = {indmax}")
         self.x_range_label_esc1.setText(f'Esc 1 Range : {indmin},{indmax}')
+        self.crop_range[1] = (int(indmin), int(indmax))
+        self.check_crop()
+
     def onselect2(self, xmin, xmax):
         indmin, indmax = np.searchsorted(self.esc2.timestamp, (xmin, xmax))
         indmax = min(len(self.esc2.timestamp) - 1, indmax)
@@ -205,6 +214,9 @@ class ProcessTool(QDialog):
         # Print the start and end indices to the console
         print(f"Plot2:Selected range: Start index = {indmin}, End index = {indmax}")
         self.x_range_label_esc2.setText(f'Esc 2 Range : {indmin},{indmax}')
+        self.crop_range[2] = (int(indmin), int(indmax))
+        self.check_crop()
+
     def onselect3(self, xmin, xmax):
         indmin, indmax = np.searchsorted(self.esc3.timestamp, (xmin, xmax))
         indmax = min(len(self.esc3.timestamp) - 1, indmax)
@@ -215,15 +227,9 @@ class ProcessTool(QDialog):
         # Print the start and end indices to the console
         print(f"Plot3:Selected range: Start index = {indmin}, End index = {indmax}")
         self.x_range_label_esc3.setText(f'Esc 3 Range : {indmin},{indmax}')
+        self.crop_range[3] = (int(indmin), int(indmax))
+        self.check_crop()
 
-    def update_content(self, index):
-        # Update content based on dropdown selection
-        if index == 0:
-            self.content_label.setText("Content for Option 1")
-        elif index == 1:
-            self.content_label.setText("Content for Option 2")
-        elif index == 2:
-            self.content_label.setText("Content for Option 3")
     def place_zero(self):
         value = self.int_input.value()
         esc = self.input_esc.currentIndex()
@@ -247,6 +253,57 @@ class ProcessTool(QDialog):
         self.ax3.clear()
         self.ax3.plot(self.esc3.timestamp, self.esc3.t_duty)
         self.canvas3.draw()
+    def check_crop(self):
+        if len(self.crop_range) == 4 and all(isinstance(i, tuple) and len(i) == 2 and
+                                          isinstance(i[0], int) and isinstance(i[1], int)
+                                          for i in self.crop_range):
+            # Enable the button
+            self.crop_button.setEnabled(True)
+        else:
+            # Disable the button if the condition is not met
+            self.crop_button.setEnabled(False)
+
+    def crop_data(self):
+        self.cropped_esc0 = copy.deepcopy(self.esc0)
+        self.cropped_esc1 = copy.deepcopy(self.esc1)
+        self.cropped_esc2 = copy.deepcopy(self.esc2)
+        self.cropped_esc3 = copy.deepcopy(self.esc3)
+        range0=self.crop_range[0]
+        range1=self.crop_range[1]
+        range2=self.crop_range[2]
+        range3=self.crop_range[3]
+        attribute_names=["voltage","current","temp","e_rpm","t_duty","m_duty","phase_current","pwr","stat_1","stat_2","timestamp"]
+        for name in attribute_names:
+            attr0=getattr(self.cropped_esc0, name)
+            attr1=getattr(self.cropped_esc1, name)
+            attr2=getattr(self.cropped_esc2, name)
+            attr3=getattr(self.cropped_esc3, name)
+            sliced_attr0=attr0[range0[0]:range0[1]]
+            sliced_attr1=attr1[range1[0]:range1[1]]
+            sliced_attr2=attr2[range2[0]:range2[1]]
+            sliced_attr3=attr3[range3[0]:range3[1]]
+            setattr(self.cropped_esc0, name, sliced_attr0)
+            setattr(self.cropped_esc1, name, sliced_attr1)
+            setattr(self.cropped_esc2, name, sliced_attr2)
+            setattr(self.cropped_esc3, name, sliced_attr3)
+        self.post_process_run.setEnabled(True)
+        print(len(self.esc0.timestamp),len(self.cropped_esc0.timestamp))
+
+    def on_button_clicked(self):
+        if self.dropdown.currentIndex() == 0:
+            self.main_window.step_test(e0=self.cropped_esc0, e1=self.cropped_esc1, e2=self.cropped_esc2, e3=self.cropped_esc3)
+        elif self.dropdown.currentIndex() == 1:
+            self.main_window.combined_step_test(e0=self.cropped_esc0, e1=self.cropped_esc1, e2=self.cropped_esc2, e3=self.cropped_esc3)
+        elif self.dropdown.currentIndex() == 2:
+            self.main_window.flight_test(e0=self.cropped_esc0, e1=self.cropped_esc1, e2=self.cropped_esc2, e3=self.cropped_esc3)
+
+    def dropdown_text_set(self):
+        if self.dropdown.currentIndex() == 0:
+            self.post_process_run.setText("Run Step Test")
+        elif self.dropdown.currentIndex() == 1:
+            self.post_process_run.setText("Run Combined Step Test")
+        elif self.dropdown.currentIndex() == 2:
+            self.post_process_run.setText("Run Flight Test")
 
     def get_max_index(self,esc):
         if esc == 0:
