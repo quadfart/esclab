@@ -68,6 +68,7 @@ class PostProcess(EscData):
                 break
     def flight_syncro(self,duration_sec=100):
         time, rpm, current, motor_duty, temp, throttle_duty, voltage = [], [], [], [], [], [], []
+        phase_cur , pow = [],[]
         (step_start_idx, step_end_idx) = self.zero_crossing[0]
 
         num_points = step_end_idx - step_start_idx + 1
@@ -83,6 +84,9 @@ class PostProcess(EscData):
         temp.extend(self.temp[step_start_idx:step_end_idx + 1])
         throttle_duty.extend(self.t_duty[step_start_idx:step_end_idx + 1])
         voltage.extend(self.voltage[step_start_idx:step_end_idx + 1])
+        phase_cur.extend(self.phase_current[step_start_idx:step_end_idx + 1])
+        pow.extend(self.pwr[step_start_idx:step_end_idx + 1])
+
 
         self.rpm = rpm
         self.current = current
@@ -91,6 +95,8 @@ class PostProcess(EscData):
         self.t_duty = throttle_duty
         self.voltage = voltage
         self.timestamp = time
+        self.phase_current = phase_cur
+        self.pwr = pow
 
     def find_zero_crossing_flight(self):
         start_index = []
@@ -105,7 +111,7 @@ class PostProcess(EscData):
 
     def combined_step_syncro(self, esc_id, step_duration_sec=35):
         time, rpm, current, motor_duty, temp, throttle_duty, voltage = [], [], [], [], [], [], []
-
+        phase_cur , pow = [],[]
         running_arr = self.running_array[esc_id]
 
         total_duration_sec = step_duration_sec * len(running_arr)
@@ -130,6 +136,8 @@ class PostProcess(EscData):
                 temp.extend(self.temp[step_start_idx:step_end_idx + 1])
                 throttle_duty.extend(self.t_duty[step_start_idx:step_end_idx + 1])
                 voltage.extend(self.voltage[step_start_idx:step_end_idx + 1])
+                phase_cur.extend(self.phase_current[step_start_idx:step_end_idx + 1])
+                pow.extend(self.pwr[step_start_idx:step_end_idx + 1])
 
             j = 0
             current_time += step_duration_sec
@@ -140,6 +148,8 @@ class PostProcess(EscData):
             temp.append(0)
             throttle_duty.append(0)
             voltage.append(0)
+            phase_cur.append(0)
+            pow.append(0)
 
         if not running_arr[-1]:
             num_points = len(time) - len(rpm)
@@ -158,6 +168,8 @@ class PostProcess(EscData):
         self.t_duty = throttle_duty
         self.voltage = voltage
         self.timestamp = time
+        self.phase_current = phase_cur
+        self.pwr=pow
 
         print(f"Final timestamp: {self.timestamp[-1]} seconds, Length {len(self.timestamp)}")
 
@@ -216,7 +228,7 @@ class PostProcess(EscData):
 
     def synchronize_steps(self, step_cmd_idx, step_duration_sec=5):
         time, rpm, current, motor_duty, temp, throttle_duty, voltage = [], [], [], [], [], [], []
-
+        phase_cur,pow=[],[]
         steps = [(step_cmd_idx[i], step_cmd_idx[i + 1] - 1) for i in range(len(step_cmd_idx) - 1)]
 
         filtered_steps = self.detect_difference_pairs(steps)
@@ -235,7 +247,8 @@ class PostProcess(EscData):
             temp.extend(self.temp[step_start_idx:step_end_idx + 1])
             throttle_duty.extend(self.t_duty[step_start_idx:step_end_idx + 1])
             voltage.extend(self.voltage[step_start_idx:step_end_idx + 1])
-
+            phase_cur.extend(self.phase_current[step_start_idx:step_end_idx + 1])
+            pow.extend(self.pwr[step_start_idx:step_end_idx + 1])
         self.rpm = rpm
         self.current = current
         self.m_duty = motor_duty
@@ -243,5 +256,7 @@ class PostProcess(EscData):
         self.t_duty = throttle_duty
         self.voltage = voltage
         self.timestamp = time
+        self.phase_current = phase_cur
+        self.pwr = pow
 
         print("Step Test Values Set.")

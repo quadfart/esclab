@@ -14,7 +14,7 @@ def test_mkdir(files_path, test_type, e0=None, e1=None, e2=None, e3=None):
             directory = "FlightTest"
 
         path = os.path.join(files_path, directory)
-        os.makedirs(path, exist_ok=True)  # Use makedirs with exist_ok=True to avoid error if directory already exists
+        os.makedirs(path, exist_ok=True)
         csv_make(path, e0, e1, e2, e3)
     except Exception as e:
         print(f"An error occurred: {e}")

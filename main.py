@@ -44,8 +44,8 @@ class CombinedView(QDialog):
             self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowMaximizeButtonHint)
             self.checkbox_layout = QVBoxLayout()
             self.checkboxes = []
-            names = ['Voltage', 'Current', 'Temperature', 'RPM', 'Throttle Duty', 'Motor Duty']
-            for i in range(6):
+            names = ['Voltage', 'Current', 'Temperature', 'RPM', 'Throttle Duty', 'Motor Duty','Phase Current','Power']
+            for i in range(8):
                 checkbox = QCheckBox(names[i])
                 checkbox.stateChanged.connect(self.update_status)
                 self.checkbox_layout.addWidget(checkbox)
@@ -109,6 +109,8 @@ class CombinedView(QDialog):
                     'RPM': self.esc0.rpm,
                     'Throttle Duty': self.esc0.t_duty,
                     'Motor Duty': self.esc0.m_duty,
+                    'Phase Current': self.esc0.phase_current,
+                    'Power':self.esc0.pwr,
                     'Serial Number': self.esc0.serial_number
                 })
                 print("ESC0 DataFrame created successfully")
@@ -122,6 +124,8 @@ class CombinedView(QDialog):
                     'RPM': self.esc1.rpm,
                     'Throttle Duty': self.esc1.t_duty,
                     'Motor Duty': self.esc1.m_duty,
+                    'Phase Current': self.esc1.phase_current,
+                    'Power': self.esc1.pwr,
                     'Serial Number': self.esc1.serial_number
                 })
                 print("ESC1 DataFrame created successfully")
@@ -135,6 +139,8 @@ class CombinedView(QDialog):
                     'RPM': self.esc2.rpm,
                     'Throttle Duty': self.esc2.t_duty,
                     'Motor Duty': self.esc2.m_duty,
+                    'Phase Current': self.esc2.phase_current,
+                    'Power': self.esc2.pwr,
                     'Serial Number': self.esc2.serial_number
                 })
                 print("ESC2 DataFrame created successfully")
@@ -148,6 +154,8 @@ class CombinedView(QDialog):
                     'RPM': self.esc3.rpm,
                     'Throttle Duty': self.esc3.t_duty,
                     'Motor Duty': self.esc3.m_duty,
+                    'Phase Current': self.esc3.phase_current,
+                    'Power': self.esc3.pwr,
                     'Serial Number': self.esc3.serial_number
                 })
                 print("ESC3 DataFrame created successfully")
@@ -310,7 +318,7 @@ class ComparisonView(QDialog):
             self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowMaximizeButtonHint)
             self.list_widget = QListWidget()
             self.list_widget.addItems(['Voltage', 'Current', 'Temperature', 'RPM', 'Throttle Duty',
-                                   'Motor Duty'])
+                                   'Motor Duty','Phase Current','Power'])
 
 
         self.selected_value = 'Voltage'
@@ -404,6 +412,8 @@ class ComparisonView(QDialog):
                 'RPM': self.esc0.rpm,
                 'Throttle Duty': self.esc0.t_duty,
                 'Motor Duty': self.esc0.m_duty,
+                'Phase Current': self.esc0.phase_current,
+                'Power': self.esc0.pwr,
                 'Serial Number': self.esc0.serial_number
             })
             print("ESC0 DataFrame created successfully")
@@ -417,6 +427,8 @@ class ComparisonView(QDialog):
                 'RPM': self.esc1.rpm,
                 'Throttle Duty': self.esc1.t_duty,
                 'Motor Duty': self.esc1.m_duty,
+                'Phase Current': self.esc1.phase_current,
+                'Power': self.esc1.pwr,
                 'Serial Number': self.esc1.serial_number
             })
             print("ESC1 DataFrame created successfully")
@@ -430,6 +442,8 @@ class ComparisonView(QDialog):
                 'RPM': self.esc2.rpm,
                 'Throttle Duty': self.esc2.t_duty,
                 'Motor Duty': self.esc2.m_duty,
+                'Phase Current': self.esc2.phase_current,
+                'Power': self.esc2.pwr,
                 'Serial Number': self.esc2.serial_number
             })
             print("ESC2 DataFrame created successfully")
@@ -443,6 +457,8 @@ class ComparisonView(QDialog):
                 'RPM': self.esc3.rpm,
                 'Throttle Duty': self.esc3.t_duty,
                 'Motor Duty': self.esc3.m_duty,
+                'Phase Current': self.esc3.phase_current,
+                'Power': self.esc3.pwr,
                 'Serial Number': self.esc3.serial_number
             })
             print("ESC3 DataFrame created successfully")
