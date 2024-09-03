@@ -675,6 +675,7 @@ class MyWindow(QMainWindow):
 
         self.tool_button = QPushButton("Process Tool",self)
         self.tool_button.clicked.connect(self.open_process_tool_window)
+        self.tool_button.setEnabled(False)
         right_layout.addWidget(self.tool_button)
 
     def create_tab(self, tab_name, individual_callback, comparison_callback, combined_callback):
@@ -739,21 +740,21 @@ class MyWindow(QMainWindow):
 
                 if all([self.esc0_data is not None, self.esc1_data is not None,
                         self.esc2_data is not None, self.esc3_data is not None]):
-                    self.step_test_button.setEnabled(True)
+                    self.tool_button.setEnabled(True)
                     if not self.raw_tab_created:
                         self.create_tab("Raw", self.open_individual_view_window, self.open_comparison_view_window,
                                         self.open_combined_view_window)
                         self.raw_tab_created = True
-                        self.step_test_button.setEnabled(True)
+                        self.tool_button.setEnabled(True)
                     self.load_label.setText("Files Loaded")
                     self.load_display_widget.setStyleSheet("background-color: green;")
                 else:
-                    self.step_test_button.setEnabled(False)
+                    self.tool_button.setEnabled(False)
                     self.load_label.setText("Failed to Load")
                     self.load_display_widget.setStyleSheet("background-color: gray;")
             except Exception as e:
                 print(f"An error occurred: {e}")
-                self.step_test_button.setEnabled(False)
+                self.tool_button.setEnabled(False)
                 self.load_label.setText("Error occurred")
                 self.path_display_widget.setStyleSheet("background-color: gray;")
 
