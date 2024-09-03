@@ -3,6 +3,7 @@ import json
 import os
 import sys
 import tempfile
+import save_utility
 from ctypes import py_object
 from pathlib import Path
 import pandas as pd
@@ -25,6 +26,8 @@ from matplotlib.widgets import SpanSelector
 from abstraction import take_values_from_csv, EscData
 from data_process import PostProcess
 from process_tool import ProcessTool
+from save_utility import test_mkdir
+
 
 class CombinedView(QDialog):
     def __init__(self,e0,e1,e2,e3,post_process=False):
@@ -596,11 +599,12 @@ class IndividualView(QDialog):
         tab.setLayout(layout)
         self.tab_widget.addTab(tab, title)
 
-class MyWindow(QMainWindow):
+class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("My PyQt6 Window")
+        self.setWindowTitle("Main Window")
         self.setGeometry(100, 100, 900, 400)
+        self.main_directory=None
 
         self.esc0_data =[]
         self.esc1_data =[]
@@ -677,8 +681,7 @@ class MyWindow(QMainWindow):
         self.tool_button.clicked.connect(self.open_process_tool_window)
         self.tool_button.setEnabled(False)
         right_layout.addWidget(self.tool_button)
-
-    def create_tab(self, tab_name, individual_callback, comparison_callback, combined_callback):
+    def create_tab_raw(self, tab_name, individual_callback, comparison_callback, combined_callback):
         tab_widget = QWidget()
         tab_layout = QVBoxLayout()
         tab_widget.setLayout(tab_layout)
@@ -699,36 +702,73 @@ class MyWindow(QMainWindow):
         tab_layout.addWidget(combined_view_button)
 
         self.buttons_tab.addTab(tab_widget, tab_name)
+    def create_tab(self, tab_name, individual_callback, comparison_callback, combined_callback,test_type=None,e0=None,e1=None,e2=None,e3=None):
+        tab_widget = QWidget()
+        tab_layout = QVBoxLayout()
+        tab_widget.setLayout(tab_layout)
+
+        save_button=QPushButton(tab_name+" Save", self)
+        save_button.clicked.connect(lambda:test_mkdir(self.main_directory,test_type,e0,e1,e2,e3))
+        save_button.setFixedHeight(60)
+        tab_layout.addWidget(save_button)
+
+        individual_view_button = QPushButton("Individual View", self)
+        individual_view_button.clicked.connect(individual_callback)
+        individual_view_button.setFixedHeight(60)
+        tab_layout.addWidget(individual_view_button)
+
+        comparison_view_button = QPushButton("Comparison View", self)
+        comparison_view_button.clicked.connect(comparison_callback)
+        comparison_view_button.setFixedHeight(60)
+        tab_layout.addWidget(comparison_view_button)
+
+        combined_view_button = QPushButton("Combined View", self)
+        combined_view_button.clicked.connect(combined_callback)
+        combined_view_button.setFixedHeight(60)
+        tab_layout.addWidget(combined_view_button)
+
+        self.buttons_tab.addTab(tab_widget, tab_name)
 
     def flight_test(self,e0,e1,e2,e3):
-        flight_e0 = PostProcess(e0,type=2)
-        flight_e1 = PostProcess(e1,type=2)
-        flight_e2 = PostProcess(e2,type=2)
-        flight_e3 = PostProcess(e3,type=2)
+        test_type = 2
+        flight_e0 = copy.deepcopy(PostProcess(e0,type=test_type))
+        flight_e1 = copy.deepcopy(PostProcess(e1,type=test_type))
+        flight_e2 = copy.deepcopy(PostProcess(e2,type=test_type))
+        flight_e3 = copy.deepcopy(PostProcess(e3,type=test_type))
 
         if not self.flight_test_tab_created:
-            self.create_tab("Flight Test", self.open_individual_view_window_flight_test,lambda: self.open_comparison_view_window_flight_test(e0=flight_e0,e1=flight_e1,e2=flight_e2,e3=flight_e3),lambda: self.open_combined_view_window_flight_test(e0=flight_e0,e1=flight_e1,e2=flight_e2,e3=flight_e3))
+            self.create_tab("Flight Test", self.open_individual_view_window,
+                            lambda: self.open_comparison_view_window_flight_test(e0=flight_e0,e1=flight_e1,e2=flight_e2,e3=flight_e3),
+                            lambda: self.open_combined_view_window_flight_test(e0=flight_e0,e1=flight_e1,e2=flight_e2,e3=flight_e3),
+                            test_type,flight_e0,flight_e1,flight_e2,flight_e3)
             self.flight_test_tab_created = True
 
     def combined_step_test(self,e0,e1,e2,e3):
-        combined_e0 = copy.deepcopy(PostProcess(e0, type=1, esc_id=0))
-        combined_e1 = copy.deepcopy(PostProcess(e1, type=1, esc_id=1))
-        combined_e2 = copy.deepcopy(PostProcess(e2, type=1, esc_id=2))
-        combined_e3 = copy.deepcopy(PostProcess(e3, type=1, esc_id=3))
+        test_type=1
+        combined_e0 = copy.deepcopy(PostProcess(e0, type=test_type, esc_id=0))
+        combined_e1 = copy.deepcopy(PostProcess(e1, type=test_type, esc_id=1))
+        combined_e2 = copy.deepcopy(PostProcess(e2, type=test_type, esc_id=2))
+        combined_e3 = copy.deepcopy(PostProcess(e3, type=test_type, esc_id=3))
 
         if not self.combined_step_test_tab_created:
-            self.create_tab("Combined Step Test", self.open_individual_view_window_combined_step_test,lambda: self.open_comparison_view_window_combined_step_test(e0=combined_e0,e1=combined_e1,e2=combined_e2,e3=combined_e3),lambda: self.open_combined_view_window_combined_step_test(e0=combined_e0,e1=combined_e1,e2=combined_e2,e3=combined_e3))
+            self.create_tab("Combined Step Test", self.open_individual_view_window,
+                            lambda: self.open_comparison_view_window_combined_step_test(e0=combined_e0,e1=combined_e1,e2=combined_e2,e3=combined_e3),
+                            lambda: self.open_combined_view_window_combined_step_test(e0=combined_e0,e1=combined_e1,e2=combined_e2,e3=combined_e3),
+                            test_type,combined_e0,combined_e1,combined_e2,combined_e3)
             self.combined_step_test_tab_created = True
     def step_test(self,e0,e1,e2,e3):
-
-        step_e0 = copy.deepcopy(PostProcess(e0, type=0))
-        step_e1 = copy.deepcopy(PostProcess(e1, type=0))
-        step_e2 = copy.deepcopy(PostProcess(e2, type=0))
-        step_e3 = copy.deepcopy(PostProcess(e3, type=0))
+        test_type = 0
+        step_e0 = copy.deepcopy(PostProcess(e0, type=test_type))
+        step_e1 = copy.deepcopy(PostProcess(e1, type=test_type))
+        step_e2 = copy.deepcopy(PostProcess(e2, type=test_type))
+        step_e3 = copy.deepcopy(PostProcess(e3, type=test_type))
 
 
         if not self.step_test_tab_created:
-            self.create_tab("Step Test", self.open_individual_view_window_step_test,lambda : self.open_comparison_view_window_step_test(e0=step_e0,e1=step_e1,e2=step_e2,e3=step_e3), lambda : self.open_combined_view_window_step_test(e0=step_e0,e1=step_e1,e2=step_e2,e3=step_e3))
+            self.create_tab("Step Test", self.open_individual_view_window,
+                            lambda : self.open_comparison_view_window_step_test(e0=step_e0,e1=step_e1,e2=step_e2,e3=step_e3),
+                            lambda : self.open_combined_view_window_step_test(e0=step_e0,e1=step_e1,e2=step_e2,e3=step_e3),
+                            test_type, step_e0, step_e1, step_e2, step_e3)
             self.step_test_tab_created = True
 
     def load_data_button(self):
@@ -742,7 +782,7 @@ class MyWindow(QMainWindow):
                         self.esc2_data is not None, self.esc3_data is not None]):
                     self.tool_button.setEnabled(True)
                     if not self.raw_tab_created:
-                        self.create_tab("Raw", self.open_individual_view_window, self.open_comparison_view_window,
+                        self.create_tab_raw("Raw", self.open_individual_view_window, self.open_comparison_view_window,
                                         self.open_combined_view_window)
                         self.raw_tab_created = True
                         self.tool_button.setEnabled(True)
@@ -761,9 +801,10 @@ class MyWindow(QMainWindow):
 
     def open_folder_browser(self):
         folder_name = QFileDialog.getExistingDirectory(self, "Select Folder")
+        dir_temp=str(folder_name)
         if folder_name:
             print(f"Selected folder: {folder_name}")
-
+            self.main_directory=str(dir_temp)
             self.files_path = []
             valid_folder = False
 
@@ -797,9 +838,6 @@ class MyWindow(QMainWindow):
     def open_combined_view_window(self):
         dialog = CombinedView(e0=self.esc0_data,e1=self.esc1_data,e2=self.esc2_data,e3=self.esc3_data)
         dialog.exec()
-    def open_individual_view_window_step_test(self):
-        self.plot_window = IndividualView(e0=self.esc0_data,e1=self.esc1_data,e2=self.esc2_data,e3=self.esc3_data)
-        self.plot_window.exec()
     def open_comparison_view_window_step_test(self,e0,e1,e2,e3):
         dialog = ComparisonView(e0=e0,e1=e1,e2=e2,e3=e3, post_process=True)
         dialog.exec()
@@ -815,9 +853,6 @@ class MyWindow(QMainWindow):
     def open_combined_view_window_combined_step_test(self,e0,e1,e2,e3):
         dialog = CombinedView(e0=e0,e1=e1,e2=e2,e3=e3, post_process=True)
         dialog.exec()
-    def open_individual_view_window_flight_test(self):
-        self.plot_window = IndividualView(e0=self.esc0_data,e1=self.esc1_data,e2=self.esc2_data,e3=self.esc3_data)
-        self.plot_window.exec()
     def open_comparison_view_window_flight_test(self,e0,e1,e2,e3):
         dialog = ComparisonView(e0=e0,e1=e1,e2=e2,e3=e3, post_process=True)
         dialog.exec()
@@ -829,6 +864,6 @@ class MyWindow(QMainWindow):
         dialog.exec()
 
 app = QApplication(sys.argv)
-window = MyWindow()
+window = MainWindow()
 window.show()
 sys.exit(app.exec())

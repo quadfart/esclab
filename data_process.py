@@ -13,7 +13,6 @@ class PostProcess(EscData):
                          esc_data.m_duty, esc_data.phase_current, esc_data.pwr, esc_data.stat_1, esc_data.stat_2,esc_data.serial_number)
         self.rpm = self.compute_rpm()
         self.running_array=[(1,0,0,0,0,1,0,1,0,1),(0,1,0,0,1,0,1,0,1,1),(0,0,1,0,1,1,0,0,1,1),(0,0,0,1,0,0,1,1,1,0)]
-
         self.zero_crossing=[]
         if type == 0:
             self.t_duty.insert(0,0)
@@ -25,7 +24,6 @@ class PostProcess(EscData):
             self.find_zero_crossing()
             print(self.zero_crossing)
             self.combined_step_syncro(esc_id=esc_id)
-
         elif type == 2:
             self.start_end_crop()
             self.find_zero_crossing_flight()
