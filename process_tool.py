@@ -29,11 +29,18 @@ class ProcessTool(QDialog):
         # Add the grid layout to the QDialog layout
         layout.addLayout(grid_layout,0,0)
         layout.setColumnStretch(1,2)
-
-        self.esc0 : EscData = main_window.esc0_data
-        self.esc1 : EscData = main_window.esc1_data
-        self.esc2 : EscData = main_window.esc2_data
-        self.esc3 : EscData = main_window.esc3_data
+        self.esc0=None
+        self.esc1=None
+        self.esc2=None
+        self.esc3=None
+        if main_window.esc0_data:
+            self.esc0 : EscData = main_window.esc0_data
+        if main_window.esc1_data:
+            self.esc1 : EscData = main_window.esc1_data
+        if main_window.esc2_data:
+            self.esc2 : EscData = main_window.esc2_data
+        if main_window.esc3_data:
+            self.esc3 : EscData = main_window.esc3_data
         self.cropped_esc0 = None
         self.cropped_esc1 = None
         self.cropped_esc2 = None
@@ -72,14 +79,18 @@ class ProcessTool(QDialog):
         self.right_layout.setSpacing(5)
 
         # Place Zero Utility
+        self.selected_esc = None
+        self.init_list=[]
         place_zero_button_layout = QHBoxLayout()
         self.place_zero_button = QPushButton("Place 0")
         self.place_zero_button.clicked.connect(self.place_zero)
         self.int_input = QSpinBox()
         self.input_esc = QComboBox()
-        self.input_esc.addItems(["Esc 0", "Esc 1", "Esc 2", "Esc 3"])
+        self.get_init_esc()
+        print("len init list:",len(self.init_list))
+        self.input_esc.addItems(self.init_list)
         self.input_esc.setCurrentIndex(0)
-        self.int_input.setMaximum(self.get_max_index(0))
+        self.int_input.setMaximum(self.get_max_index(self.init_list[self.input_esc.currentIndex()]))
         self.input_esc.currentIndexChanged.connect(self.update_max_index)
         self.int_input.setMinimum(0)
         place_zero_button_layout.addWidget(self.place_zero_button)
@@ -88,96 +99,116 @@ class ProcessTool(QDialog):
         self.right_layout.addLayout(place_zero_button_layout)
         # Place Zero Utility
 
+
+
         # Add the right layout to the main layout
         right_widget = QWidget()
         right_widget.setLayout(self.right_layout)
         layout.addWidget(right_widget,0,1)
 
-        # Create a Matplotlib figure and axes
         self.fig, (self.ax0) = plt.subplots(figsize=(8, 6))
         self.canvas = FigureCanvas(self.fig)
         # Add the canvas to the layout
-        grid_layout.addWidget(self.canvas,1,0)
-        grid_layout.addWidget(NavigationToolbar2QT(self.canvas,self),0,0)
-        # Plot the data
-        self.ax0.plot(self.esc0.timestamp, self.esc0.t_duty)
-        self.ax0.set_ylim(-5, max(self.esc0.t_duty)+10)
-        self.ax0.set_title('Esc 0')
-        # Create the SpanSelector
-        self.span0 = SpanSelector(
-            self.ax0,
-            self.onselect0,
-            "horizontal",
-            useblit=True,
-            props=dict(alpha=0.5, facecolor="tab:blue"),
-            interactive=True,
-            drag_from_anywhere=True,
-            ignore_event_outside=True,
+        grid_layout.addWidget(self.canvas, 1, 0)
+        grid_layout.addWidget(NavigationToolbar2QT(self.canvas, self), 0, 0)
+        # Create a Matplotlib figure and axes
+        if self.esc0:
+            # Plot the data
+            self.ax0.plot(self.esc0.timestamp, self.esc0.t_duty)
+            self.ax0.set_ylim(-5, max(self.esc0.t_duty)+10)
+            self.ax0.set_title('Esc 0')
+            # Create the SpanSelector
+            self.span0 = SpanSelector(
+                self.ax0,
+                self.onselect0,
+                "horizontal",
+                useblit=True,
+                props=dict(alpha=0.5, facecolor="tab:blue"),
+                interactive=True,
+                drag_from_anywhere=True,
+                ignore_event_outside=True,
 
-        )
+            )
+        else:
+            # Set a title to indicate that no data is available
+            self.ax0.set_title('Esc 0 (No Data)')
         # Create a Matplotlib figure and axes
         self.fig1, (self.ax1) = plt.subplots(figsize=(8, 6))
         self.canvas1 = FigureCanvas(self.fig1)
         # Add the canvas to the layout
-        grid_layout.addWidget(self.canvas1,1,1)
+        grid_layout.addWidget(self.canvas1, 1, 1)
         grid_layout.addWidget(NavigationToolbar2QT(self.canvas1, self), 0, 1)
-        # Plot the data
-        self.ax1.plot(self.esc1.timestamp, self.esc1.t_duty)
-        self.ax1.set_ylim(-5, max(self.esc1.t_duty)+10)
-        self.ax1.set_title('Esc 1')
-        # Create the SpanSelector
-        self.span1 = SpanSelector(
-            self.ax1,
-            self.onselect1,
-            "horizontal",
-            useblit=True,
-            props=dict(alpha=0.5, facecolor="tab:gray"),
-            interactive=True,
-            drag_from_anywhere=True,
-            ignore_event_outside=True
-        )
+        if self.esc1:
+            # Plot the data
+            self.ax1.plot(self.esc1.timestamp, self.esc1.t_duty)
+            self.ax1.set_ylim(-5, max(self.esc1.t_duty)+10)
+            self.ax1.set_title('Esc 1')
+            # Create the SpanSelector
+            self.span1 = SpanSelector(
+                self.ax1,
+                self.onselect1,
+                "horizontal",
+                useblit=True,
+                props=dict(alpha=0.5, facecolor="tab:gray"),
+                interactive=True,
+                drag_from_anywhere=True,
+                ignore_event_outside=True
+            )
+        else:
+            # Set a title to indicate that no data is available
+            self.ax1.set_title('Esc 1 (No Data)')
         # Create a Matplotlib figure and axes
         self.fig2, (self.ax2) = plt.subplots(figsize=(8, 6))
         self.canvas2 = FigureCanvas(self.fig2)
-        # Add the canvas to the layout
+         # Add the canvas to the layout
         grid_layout.addWidget(self.canvas2,3,0)
         grid_layout.addWidget(NavigationToolbar2QT(self.canvas2, self), 2, 0)
-        # Plot the data
-        self.ax2.plot(self.esc2.timestamp, self.esc2.t_duty)
-        self.ax2.set_ylim(-5, max(self.esc2.t_duty)+10)
-        self.ax2.set_title('Esc 2')
-        # Create the SpanSelector
-        self.span2 = SpanSelector(
-            self.ax2,
-            self.onselect2,
-            "horizontal",
-            useblit=True,
-            props=dict(alpha=0.5, facecolor="tab:pink"),
-            interactive=True,
-            drag_from_anywhere=True,
-            ignore_event_outside=True
-        )
+        if self.esc2:
+            # Plot the data
+            self.ax2.plot(self.esc2.timestamp, self.esc2.t_duty)
+            self.ax2.set_ylim(-5, max(self.esc2.t_duty)+10)
+            self.ax2.set_title('Esc 2')
+            # Create the SpanSelector
+            self.span2 = SpanSelector(
+                self.ax2,
+                self.onselect2,
+                "horizontal",
+                useblit=True,
+                props=dict(alpha=0.5, facecolor="tab:pink"),
+                interactive=True,
+                drag_from_anywhere=True,
+                ignore_event_outside=True
+            )
+        else:
+            # Set a title to indicate that no data is available
+            self.ax2.set_title('Esc 2 (No Data)')
+
         # Create a Matplotlib figure and axes
         self.fig3, (self.ax3) = plt.subplots(figsize=(8, 6))
         self.canvas3 = FigureCanvas(self.fig3)
         # Add the canvas to the layout
-        grid_layout.addWidget(self.canvas3,3,1)
+        grid_layout.addWidget(self.canvas3, 3, 1)
         grid_layout.addWidget(NavigationToolbar2QT(self.canvas3, self), 2, 1)
-        # Plot the data
-        self.ax3.plot(self.esc3.timestamp, self.esc3.t_duty)
-        self.ax3.set_ylim(-5, max(self.esc3.t_duty)+10)
-        self.ax3.set_title('Esc 3')
-        # Create the SpanSelector
-        self.span3 = SpanSelector(
-            self.ax3,
-            self.onselect3,
-            "horizontal",
-            useblit=True,
-            props=dict(alpha=0.5, facecolor="tab:orange"),
-            interactive=True,
-            drag_from_anywhere=True,
-            ignore_event_outside=True
-        )
+        if self.esc3:
+            # Plot the data
+            self.ax3.plot(self.esc3.timestamp, self.esc3.t_duty)
+            self.ax3.set_ylim(-5, max(self.esc3.t_duty)+10)
+            self.ax3.set_title('Esc 3')
+            # Create the SpanSelector
+            self.span3 = SpanSelector(
+                self.ax3,
+                self.onselect3,
+                "horizontal",
+                useblit=True,
+                props=dict(alpha=0.5, facecolor="tab:orange"),
+                interactive=True,
+                drag_from_anywhere=True,
+                ignore_event_outside=True
+            )
+        else:
+            # Set a title to indicate that no data is available
+            self.ax3.set_title('Esc 3 (No Data)')
+
     def onselect0(self, xmin, xmax):
         indmin, indmax = np.searchsorted(self.esc0.timestamp, (xmin, xmax))
         indmax = min(len(self.esc0.timestamp) - 1, indmax)
@@ -229,10 +260,19 @@ class ProcessTool(QDialog):
         self.x_range_label_esc3.setText(f'Esc 3 Range : {indmin},{indmax}')
         self.crop_range[3] = (int(indmin), int(indmax))
         self.check_crop()
+    def get_init_esc(self):
+        if self.esc0:
+            self.init_list.append("Esc 0")
+        if self.esc1:
+            self.init_list.append("Esc 1")
+        if self.esc2:
+            self.init_list.append("Esc 2")
+        if self.esc3:
+            self.init_list.append("Esc 3")
 
     def place_zero(self):
         value = self.int_input.value()
-        esc = self.input_esc.currentIndex()
+        esc = self.selected_esc
         if esc == 0:
             self.esc0.t_duty[value]=0
         elif esc == 1:
@@ -241,22 +281,29 @@ class ProcessTool(QDialog):
             self.esc2.t_duty[value]=0
         elif esc == 3:
             self.esc3.t_duty[value]=0
-        self.ax0.clear()
-        self.ax0.plot(self.esc0.timestamp, self.esc0.t_duty)
-        self.canvas.draw()
-        self.ax1.clear()
-        self.ax1.plot(self.esc1.timestamp, self.esc1.t_duty)
-        self.canvas1.draw()
-        self.ax2.clear()
-        self.ax2.plot(self.esc2.timestamp, self.esc2.t_duty)
-        self.canvas2.draw()
-        self.ax3.clear()
-        self.ax3.plot(self.esc3.timestamp, self.esc3.t_duty)
-        self.canvas3.draw()
+        if self.ax0:
+            self.ax0.clear()
+            self.ax0.plot(self.esc0.timestamp, self.esc0.t_duty)
+            self.canvas.draw()
+        if self.ax1:
+            self.ax1.clear()
+            self.ax1.plot(self.esc1.timestamp, self.esc1.t_duty)
+            self.canvas1.draw()
+        if self.ax2:
+            self.ax2.clear()
+            self.ax2.plot(self.esc2.timestamp, self.esc2.t_duty)
+            self.canvas2.draw()
+        if self.ax3:
+            self.ax3.clear()
+            self.ax3.plot(self.esc3.timestamp, self.esc3.t_duty)
+            self.canvas3.draw()
+
     def check_crop(self):
-        if len(self.crop_range) == 4 and all(isinstance(i, tuple) and len(i) == 2 and
-                                          isinstance(i[0], int) and isinstance(i[1], int)
-                                          for i in self.crop_range):
+        # Count the number of non-None tuples in self.crop_range
+        non_none_count = sum(1 for i in self.crop_range if i[0] is not None and i[1] is not None)
+
+        # Check if the count matches the length of self.init_list
+        if non_none_count == len(self.init_list):
             # Enable the button
             self.crop_button.setEnabled(True)
         else:
@@ -264,30 +311,42 @@ class ProcessTool(QDialog):
             self.crop_button.setEnabled(False)
 
     def crop_data(self):
-        self.cropped_esc0 = copy.deepcopy(self.esc0)
-        self.cropped_esc1 = copy.deepcopy(self.esc1)
-        self.cropped_esc2 = copy.deepcopy(self.esc2)
-        self.cropped_esc3 = copy.deepcopy(self.esc3)
-        range0=self.crop_range[0]
-        range1=self.crop_range[1]
-        range2=self.crop_range[2]
-        range3=self.crop_range[3]
+        range0=None
+        range1=None
+        range2=None
+        range3=None
+        if self.esc0:
+            self.cropped_esc0 = copy.deepcopy(self.esc0)
+            range0 = self.crop_range[0]
+        if self.esc1:
+            self.cropped_esc1 = copy.deepcopy(self.esc1)
+            range1 = self.crop_range[1]
+        if self.esc2:
+            self.cropped_esc2 = copy.deepcopy(self.esc2)
+            range2 = self.crop_range[2]
+        if self.esc3:
+            self.cropped_esc3 = copy.deepcopy(self.esc3)
+            range3=self.crop_range[3]
+
         attribute_names=["voltage","current","temp","e_rpm","t_duty","m_duty","phase_current","pwr","stat_1","stat_2","timestamp"]
         for name in attribute_names:
-            attr0=getattr(self.cropped_esc0, name)
-            attr1=getattr(self.cropped_esc1, name)
-            attr2=getattr(self.cropped_esc2, name)
-            attr3=getattr(self.cropped_esc3, name)
-            sliced_attr0=attr0[range0[0]:range0[1]]
-            sliced_attr1=attr1[range1[0]:range1[1]]
-            sliced_attr2=attr2[range2[0]:range2[1]]
-            sliced_attr3=attr3[range3[0]:range3[1]]
-            setattr(self.cropped_esc0, name, sliced_attr0)
-            setattr(self.cropped_esc1, name, sliced_attr1)
-            setattr(self.cropped_esc2, name, sliced_attr2)
-            setattr(self.cropped_esc3, name, sliced_attr3)
+            if self.cropped_esc0 and range0:
+                attr0 = getattr(self.cropped_esc0, name)
+                setattr(self.cropped_esc0, name, attr0[range0[0]:range0[1]])
+
+            if self.cropped_esc1 and range1:
+                attr1 = getattr(self.cropped_esc1, name)
+                setattr(self.cropped_esc1, name, attr1[range1[0]:range1[1]])
+
+            if self.cropped_esc2 and range2:
+                attr2 = getattr(self.cropped_esc2, name)
+                setattr(self.cropped_esc2, name, attr2[range2[0]:range2[1]])
+
+            if self.cropped_esc3 and range3:
+                attr3 = getattr(self.cropped_esc3, name)
+                setattr(self.cropped_esc3, name, attr3[range3[0]:range3[1]])
+
         self.post_process_run.setEnabled(True)
-        print(len(self.esc0.timestamp),len(self.cropped_esc0.timestamp))
 
     def on_button_clicked(self):
         if self.dropdown.currentIndex() == 0:
@@ -306,20 +365,26 @@ class ProcessTool(QDialog):
             self.post_process_run.setText("Run Flight Test")
 
     def get_max_index(self,esc):
-        if esc == 0:
+        if esc == "Esc 0":
+            if not self.esc0:
+                pass
+            self.selected_esc=esc
             return int(len(self.esc0.timestamp)-1)
-        elif esc == 1:
+        elif esc == "Esc 1":
+            if not self.esc1:
+                pass
+            self.selected_esc=esc
             return int(len(self.esc1.timestamp)-1)
-        elif esc == 2:
+        elif esc == "Esc 2":
+            if not self.esc2:
+                pass
+            self.selected_esc=esc
             return int(len(self.esc2.timestamp)-1)
-        elif esc == 3:
+        elif esc == "Esc 3":
+            if not self.esc3:
+                pass
+            self.selected_esc=esc
             return int(len(self.esc3.timestamp)-1)
     def update_max_index(self,index):
         max_value = self.get_max_index(index)
         self.int_input.setMaximum(max_value)
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-
-    # Create and display the dialog
-    dialog = ProcessTool()
-    dialog.exec()

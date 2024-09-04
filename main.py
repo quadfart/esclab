@@ -24,596 +24,12 @@ from matplotlib.widgets import SpanSelector
 
 
 from abstraction import take_values_from_csv, EscData
+from combined_view import CombinedView
+from comparison_view import ComparisonView
 from data_process import PostProcess
+from individual_view import IndividualView
 from process_tool import ProcessTool
 from save_utility import test_mkdir
-
-
-class CombinedView(QDialog):
-    def __init__(self,e0,e1,e2,e3,post_process=False):
-        super().__init__()
-        if post_process:
-            self.esc0 : PostProcess = e0
-            self.esc1 : PostProcess = e1
-            self.esc2 : PostProcess = e2
-            self.esc3 : PostProcess = e3
-            print(len(self.esc0.timestamp), len(self.esc0.current), len(self.esc0.m_duty), len(self.esc0.temp), len(self.esc0.t_duty),
-                  len(self.esc0.voltage), len(self.esc0.rpm))
-            self.setWindowTitle("Combined View - Post Process")
-            self.setGeometry(150, 150, 800, 600)
-            self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowMaximizeButtonHint)
-            self.checkbox_layout = QVBoxLayout()
-            self.checkboxes = []
-            names = ['Voltage', 'Current', 'Temperature', 'RPM', 'Throttle Duty', 'Motor Duty','Phase Current','Power']
-            for i in range(8):
-                checkbox = QCheckBox(names[i])
-                checkbox.stateChanged.connect(self.update_status)
-                self.checkbox_layout.addWidget(checkbox)
-                self.checkboxes.append(checkbox)
-        else :
-            self.esc0 : EscData = e0
-            self.esc1 : EscData = e1
-            self.esc2 : EscData = e2
-            self.esc3 : EscData = e3
-            self.setWindowTitle("Combined View")
-            self.setGeometry(150,150,800,600)
-            self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowMaximizeButtonHint)
-            self.checkbox_layout = QVBoxLayout()
-            self.checkboxes = []
-            names = ['Voltage','Current','Temperature','eRPM','Throttle Duty','Motor Duty','Phase Current','Power','Status 1','Status 2']
-            for i in range(10):
-                checkbox = QCheckBox(names[i])
-                checkbox.stateChanged.connect(self.update_status)
-                self.checkbox_layout.addWidget(checkbox)
-                self.checkboxes.append(checkbox)
-
-
-        checkbox_container = QWidget()
-        checkbox_container.setLayout(self.checkbox_layout)
-
-        self.browser = QWebEngineView()
-
-        main_layout = QHBoxLayout()
-
-        main_layout.addWidget(self.browser)
-        main_layout.addWidget(checkbox_container)
-
-        main_layout.setStretchFactor(checkbox_container, 1)
-        main_layout.setStretchFactor(self.browser, 6)
-
-        self.setLayout(main_layout)
-
-        self.status_label = QLabel()
-        self.checkbox_layout.addWidget(self.status_label)
-
-        if post_process == True:
-            print("here")
-            self.load_data_post_process()
-            self.update_plot(None)
-        else:
-            self.load_data()
-            self.update_plot(None)
-
-    def update_status(self):
-        checked_boxes = [checkbox.text() for checkbox in self.checkboxes if checkbox.isChecked()]
-        print(checked_boxes)
-        self.update_plot(checked_boxes)
-
-    def load_data_post_process(self):
-            try:
-                self.df_esc0 = pd.DataFrame({
-                    'Time': self.esc0.timestamp,
-                    'Voltage': self.esc0.voltage,
-                    'Current': self.esc0.current,
-                    'Temperature': self.esc0.temp,
-                    'RPM': self.esc0.rpm,
-                    'Throttle Duty': self.esc0.t_duty,
-                    'Motor Duty': self.esc0.m_duty,
-                    'Phase Current': self.esc0.phase_current,
-                    'Power':self.esc0.pwr,
-                    'Serial Number': self.esc0.serial_number
-                })
-                print("ESC0 DataFrame created successfully")
-                print(self.df_esc0.head())
-
-                self.df_esc1 = pd.DataFrame({
-                    'Time': self.esc1.timestamp,
-                    'Voltage': self.esc1.voltage,
-                    'Current': self.esc1.current,
-                    'Temperature': self.esc1.temp,
-                    'RPM': self.esc1.rpm,
-                    'Throttle Duty': self.esc1.t_duty,
-                    'Motor Duty': self.esc1.m_duty,
-                    'Phase Current': self.esc1.phase_current,
-                    'Power': self.esc1.pwr,
-                    'Serial Number': self.esc1.serial_number
-                })
-                print("ESC1 DataFrame created successfully")
-                print(self.df_esc1.head())
-
-                self.df_esc2 = pd.DataFrame({
-                    'Time': self.esc2.timestamp,
-                    'Voltage': self.esc2.voltage,
-                    'Current': self.esc2.current,
-                    'Temperature': self.esc2.temp,
-                    'RPM': self.esc2.rpm,
-                    'Throttle Duty': self.esc2.t_duty,
-                    'Motor Duty': self.esc2.m_duty,
-                    'Phase Current': self.esc2.phase_current,
-                    'Power': self.esc2.pwr,
-                    'Serial Number': self.esc2.serial_number
-                })
-                print("ESC2 DataFrame created successfully")
-                print(self.df_esc2.head())
-
-                self.df_esc3 = pd.DataFrame({
-                    'Time': self.esc3.timestamp,
-                    'Voltage': self.esc3.voltage,
-                    'Current': self.esc3.current,
-                    'Temperature': self.esc3.temp,
-                    'RPM': self.esc3.rpm,
-                    'Throttle Duty': self.esc3.t_duty,
-                    'Motor Duty': self.esc3.m_duty,
-                    'Phase Current': self.esc3.phase_current,
-                    'Power': self.esc3.pwr,
-                    'Serial Number': self.esc3.serial_number
-                })
-                print("ESC3 DataFrame created successfully")
-                print(self.df_esc3.head())
-
-                self.df_esc0['ESC'] = 'ESC0'
-                self.df_esc1['ESC'] = 'ESC1'
-                self.df_esc2['ESC'] = 'ESC2'
-                self.df_esc3['ESC'] = 'ESC3'
-                self.df_combined = pd.concat([self.df_esc0, self.df_esc1, self.df_esc2, self.df_esc3])
-                print("Combined DataFrame created successfully")
-                print(self.df_combined.head())
-
-            except Exception as e:
-                print(f"An error occurred: {e}")
-
-    def load_data(self):
-
-        self.df_esc0 = pd.DataFrame({
-            'Time': self.esc0.timestamp,
-            'Voltage': self.esc0.voltage,
-            'Current': self.esc0.current,
-            'Temperature': self.esc0.temp,
-            'eRPM': self.esc0.e_rpm,
-            'Throttle Duty': self.esc0.t_duty,
-            'Motor Duty': self.esc0.m_duty,
-            'Phase Current': self.esc0.phase_current,
-            'Power': self.esc0.pwr,
-            'Status 1': self.esc0.stat_1,
-            'Status 2': self.esc0.stat_2,
-            'Serial Number': self.esc0.serial_number
-        })
-        self.df_esc1 = pd.DataFrame({
-            'Time': self.esc1.timestamp,
-            'Voltage': self.esc1.voltage,
-            'Current': self.esc1.current,
-            'Temperature': self.esc1.temp,
-            'eRPM': self.esc1.e_rpm,
-            'Throttle Duty': self.esc1.t_duty,
-            'Motor Duty': self.esc1.m_duty,
-            'Phase Current': self.esc1.phase_current,
-            'Power': self.esc1.pwr,
-            'Status 1': self.esc1.stat_1,
-            'Status 2': self.esc1.stat_2,
-            'Serial Number': self.esc1.serial_number
-        })
-        self.df_esc2 = pd.DataFrame({
-            'Time': self.esc2.timestamp,
-            'Voltage': self.esc2.voltage,
-            'Current': self.esc2.current,
-            'Temperature': self.esc2.temp,
-            'eRPM': self.esc2.e_rpm,
-            'Throttle Duty': self.esc2.t_duty,
-            'Motor Duty': self.esc2.m_duty,
-            'Phase Current': self.esc2.phase_current,
-            'Power': self.esc2.pwr,
-            'Status 1': self.esc2.stat_1,
-            'Status 2': self.esc2.stat_2,
-            'Serial Number': self.esc2.serial_number
-        })
-        self.df_esc3 = pd.DataFrame({
-            'Time': self.esc3.timestamp,
-            'Voltage': self.esc3.voltage,
-            'Current': self.esc3.current,
-            'Temperature': self.esc3.temp,
-            'eRPM': self.esc3.e_rpm,
-            'Throttle Duty': self.esc3.t_duty,
-            'Motor Duty': self.esc3.m_duty,
-            'Phase Current': self.esc3.phase_current,
-            'Power': self.esc3.pwr,
-            'Status 1': self.esc3.stat_1,
-            'Status 2': self.esc3.stat_2,
-            'Serial Number': self.esc3.serial_number
-        })
-
-        self.df_esc0['ESC'] = 'ESC0'
-        self.df_esc1['ESC'] = 'ESC1'
-        self.df_esc2['ESC'] = 'ESC2'
-        self.df_esc3['ESC'] = 'ESC3'
-        self.df_combined = pd.concat([self.df_esc0, self.df_esc1, self.df_esc2, self.df_esc3])
-
-    def update_plot(self, option=None):
-        if option is None or not all(col in self.df_combined.columns for col in option):
-            fig = make_subplots(rows=1, cols=1)
-        else:
-            num_columns = len(option)
-            num_rows = (num_columns - 1) // 3 + 1
-
-            fig = make_subplots(rows=num_rows, cols=3,
-                                subplot_titles=option,
-                                shared_xaxes='all',
-                                vertical_spacing=0.15,
-                                horizontal_spacing=0.1)
-            esc_colors = {
-                'ESC0': 'blue',
-                'ESC1': 'red',
-                'ESC2': 'green',
-                'ESC3': 'purple'
-            }
-            esc_traces = {esc: [] for esc in self.df_combined['ESC'].unique()}
-            for i, col_name in enumerate(option):
-                row = i // 3 + 1
-                col = i % 3 + 1
-                for esc in self.df_combined['ESC'].unique():
-                    df_filtered = self.df_combined[self.df_combined['ESC'] == esc]
-                    trace = go.Scatter(
-                        x=df_filtered['Time'],
-                        y=df_filtered[col_name],
-                        mode='lines',
-                        name=f"{col_name} ({esc})",
-                        line=dict(color=esc_colors.get(esc, 'black')),
-                        legendgroup=esc
-                    )
-                    esc_traces[esc].append(trace)
-                    fig.add_trace(trace, row=row, col=col)
-            for esc, traces in esc_traces.items():
-                fig.add_trace(
-                    go.Scatter(
-                        x=[],
-                        y=[],
-                        mode='lines',
-                        name=esc,
-                        line=dict(color=esc_colors.get(esc, 'black')),
-                        visible='legendonly',
-                        legendgroup=esc
-                    )
-                )
-            fig.update_layout(
-                showlegend=True,
-                title="ESC Data Over Time"
-            )
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".html") as tmp_file:
-            fig.write_html(tmp_file.name)
-            tmp_file_path = tmp_file.name
-        self.browser.setUrl(QUrl.fromLocalFile(tmp_file_path))
-
-class ComparisonView(QDialog):
-    def __init__(self,e0,e1,e2,e3,post_process=False):
-        super().__init__()
-        if post_process==False:
-            self.esc0 : EscData = e0
-            self.esc1 : EscData = e1
-            self.esc2 : EscData = e2
-            self.esc3 : EscData = e3
-            self.setWindowTitle("Comparison View")
-            self.setGeometry(150, 150, 800, 600)
-            self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowMaximizeButtonHint)
-            self.list_widget = QListWidget()
-            self.list_widget.addItems(['Voltage', 'Current', 'Temperature', 'eRPM', 'Throttle Duty',
-                                   'Motor Duty', 'Phase Current', 'Power', 'Status 1', 'Status 2'])
-        else:
-            self.esc0 : PostProcess = e0
-            self.esc1 : PostProcess = e1
-            self.esc2 : PostProcess = e2
-            self.esc3 : PostProcess = e3
-            print(len(self.esc0.timestamp), len(self.esc0.current), len(self.esc0.m_duty), len(self.esc0.temp), len(self.esc0.t_duty),
-                  len(self.esc0.voltage), len(self.esc0.rpm))
-            self.setWindowTitle("Comparison View - Post Processed")
-            self.setGeometry(150, 150, 800, 600)
-            self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowMaximizeButtonHint)
-            self.list_widget = QListWidget()
-            self.list_widget.addItems(['Voltage', 'Current', 'Temperature', 'RPM', 'Throttle Duty',
-                                   'Motor Duty','Phase Current','Power'])
-
-
-        self.selected_value = 'Voltage'
-        self.list_widget.itemClicked.connect(self.on_item_clicked)
-        self.browser = QWebEngineView()
-        h_layout = QHBoxLayout()
-        h_layout.addWidget(self.list_widget)
-        h_layout.addWidget(self.browser)
-        h_layout.setStretchFactor(self.list_widget, 1)
-        h_layout.setStretchFactor(self.browser, 5)
-        self.setLayout(h_layout)
-
-        if post_process==False:
-            self.load_data()
-        else:
-            self.load_data_post_process()
-
-        self.update_plot()
-
-    def load_data(self):
-        self.df_esc0 = pd.DataFrame({
-            'Time': self.esc0.timestamp,
-            'Voltage': self.esc0.voltage,
-            'Current': self.esc0.current,
-            'Temperature': self.esc0.temp,
-            'eRPM': self.esc0.e_rpm,
-            'Throttle Duty': self.esc0.t_duty,
-            'Motor Duty': self.esc0.m_duty,
-            'Phase Current': self.esc0.phase_current,
-            'Power': self.esc0.pwr,
-            'Status 1': self.esc0.stat_1,
-            'Status 2': self.esc0.stat_2,
-            'Serial Number': self.esc0.serial_number
-        })
-        self.df_esc1 = pd.DataFrame({
-            'Time': self.esc1.timestamp,
-            'Voltage': self.esc1.voltage,
-            'Current': self.esc1.current,
-            'Temperature': self.esc1.temp,
-            'eRPM': self.esc1.e_rpm,
-            'Throttle Duty': self.esc1.t_duty,
-            'Motor Duty': self.esc1.m_duty,
-            'Phase Current': self.esc1.phase_current,
-            'Power': self.esc1.pwr,
-            'Status 1': self.esc1.stat_1,
-            'Status 2': self.esc1.stat_2,
-            'Serial Number': self.esc1.serial_number
-        })
-        self.df_esc2 = pd.DataFrame({
-            'Time': self.esc2.timestamp,
-            'Voltage': self.esc2.voltage,
-            'Current': self.esc2.current,
-            'Temperature': self.esc2.temp,
-            'eRPM': self.esc2.e_rpm,
-            'Throttle Duty': self.esc2.t_duty,
-            'Motor Duty': self.esc2.m_duty,
-            'Phase Current': self.esc2.phase_current,
-            'Power': self.esc2.pwr,
-            'Status 1': self.esc2.stat_1,
-            'Status 2': self.esc2.stat_2,
-            'Serial Number': self.esc2.serial_number
-        })
-        self.df_esc3 = pd.DataFrame({
-            'Time': self.esc3.timestamp,
-            'Voltage': self.esc3.voltage,
-            'Current': self.esc3.current,
-            'Temperature': self.esc3.temp,
-            'eRPM': self.esc3.e_rpm,
-            'Throttle Duty': self.esc3.t_duty,
-            'Motor Duty': self.esc3.m_duty,
-            'Phase Current': self.esc3.phase_current,
-            'Power': self.esc3.pwr,
-            'Status 1': self.esc3.stat_1,
-            'Status 2': self.esc3.stat_2,
-            'Serial Number': self.esc3.serial_number
-        })
-
-        self.df_esc0['ESC'] = 'ESC0'
-        self.df_esc1['ESC'] = 'ESC1'
-        self.df_esc2['ESC'] = 'ESC2'
-        self.df_esc3['ESC'] = 'ESC3'
-        self.df_combined = pd.concat([self.df_esc0, self.df_esc1, self.df_esc2, self.df_esc3])
-
-    def load_data_post_process(self):
-        try:
-            self.df_esc0 = pd.DataFrame({
-                'Time': self.esc0.timestamp,
-                'Voltage': self.esc0.voltage,
-                'Current': self.esc0.current,
-                'Temperature': self.esc0.temp,
-                'RPM': self.esc0.rpm,
-                'Throttle Duty': self.esc0.t_duty,
-                'Motor Duty': self.esc0.m_duty,
-                'Phase Current': self.esc0.phase_current,
-                'Power': self.esc0.pwr,
-                'Serial Number': self.esc0.serial_number
-            })
-            print("ESC0 DataFrame created successfully")
-            print(self.df_esc0.head())
-
-            self.df_esc1 = pd.DataFrame({
-                'Time': self.esc1.timestamp,
-                'Voltage': self.esc1.voltage,
-                'Current': self.esc1.current,
-                'Temperature': self.esc1.temp,
-                'RPM': self.esc1.rpm,
-                'Throttle Duty': self.esc1.t_duty,
-                'Motor Duty': self.esc1.m_duty,
-                'Phase Current': self.esc1.phase_current,
-                'Power': self.esc1.pwr,
-                'Serial Number': self.esc1.serial_number
-            })
-            print("ESC1 DataFrame created successfully")
-            print(self.df_esc1.head())
-
-            self.df_esc2 = pd.DataFrame({
-                'Time': self.esc2.timestamp,
-                'Voltage': self.esc2.voltage,
-                'Current': self.esc2.current,
-                'Temperature': self.esc2.temp,
-                'RPM': self.esc2.rpm,
-                'Throttle Duty': self.esc2.t_duty,
-                'Motor Duty': self.esc2.m_duty,
-                'Phase Current': self.esc2.phase_current,
-                'Power': self.esc2.pwr,
-                'Serial Number': self.esc2.serial_number
-            })
-            print("ESC2 DataFrame created successfully")
-            print(self.df_esc2.head())
-
-            self.df_esc3 = pd.DataFrame({
-                'Time': self.esc3.timestamp,
-                'Voltage': self.esc3.voltage,
-                'Current': self.esc3.current,
-                'Temperature': self.esc3.temp,
-                'RPM': self.esc3.rpm,
-                'Throttle Duty': self.esc3.t_duty,
-                'Motor Duty': self.esc3.m_duty,
-                'Phase Current': self.esc3.phase_current,
-                'Power': self.esc3.pwr,
-                'Serial Number': self.esc3.serial_number
-            })
-            print("ESC3 DataFrame created successfully")
-            print(self.df_esc3.head())
-
-            self.df_esc0['ESC'] = 'ESC0'
-            self.df_esc1['ESC'] = 'ESC1'
-            self.df_esc2['ESC'] = 'ESC2'
-            self.df_esc3['ESC'] = 'ESC3'
-            self.df_combined = pd.concat([self.df_esc0, self.df_esc1, self.df_esc2, self.df_esc3])
-            print("Combined DataFrame created successfully")
-            print(self.df_combined.head())
-
-        except Exception as e:
-            print(f"An error occurred: {e}")
-
-    def on_item_clicked(self, item):
-        self.selected_value = item.text()
-        print(f"Selected value: {self.selected_value}")
-        self.update_plot()
-
-    def update_plot(self):
-        fig = px.line(self.df_combined, x='Time', y=self.selected_value, color='ESC',
-                      labels={'Time': 'Time', self.selected_value: self.selected_value},
-                      title='Comparison View')
-
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".html") as tmp_file:
-            fig.write_html(tmp_file.name)
-            tmp_file_path = tmp_file.name
-
-        self.browser.setUrl(QUrl.fromLocalFile(tmp_file_path))
-
-class IndividualView(QDialog):
-    def __init__(self,e0,e1,e2,e3):
-        super().__init__()
-        self.esc0=e0
-        self.esc1=e1
-        self.esc2=e2
-        self.esc3=e3
-
-        # Set window title and size
-        self.setWindowTitle("Individual View")
-        self.setGeometry(150, 150, 800, 600)
-        self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowMaximizeButtonHint)
-        self.tab_widget = QTabWidget()
-        layout = QVBoxLayout()
-        layout.addWidget(self.tab_widget)
-        self.setLayout(layout)
-
-        self.create_tab("ESC 0", self.create_plot_1())
-        self.create_tab("ESC 1", self.create_plot_2())
-        self.create_tab("ESC 2", self.create_plot_3())
-        self.create_tab("ESC 3", self.create_plot_4())
-
-    def create_plot_1(self):
-        try:
-            df = pd.DataFrame({
-                'Index': list(range(len(self.esc0.voltage))),
-                'Voltage': self.esc0.voltage,
-                'Current': self.esc0.current,
-                'Temperature': self.esc0.temp,
-                'eRPM': self.esc0.e_rpm,
-                'Throttle Duty': self.esc0.t_duty,
-                'Motor Duty': self.esc0.m_duty,
-                'Phase Current': self.esc0.phase_current,
-                'Power': self.esc0.pwr,
-                'Status 1': self.esc0.stat_1,
-                'Status 2': self.esc0.stat_2,
-                'Serial Number': self.esc0.serial_number
-            })
-            fig = px.line(df, x='Index', y=['Voltage','Current','Temperature','eRPM','Throttle Duty','Motor Duty','Phase Current','Power'], title='ESC-0'+'  '+'Serial Number'+ self.esc0.serial_number)
-            return fig
-        except Exception as e:
-            print(f"Error in create_plot_1: {e}")
-            return px.Figure()
-
-    def create_plot_2(self):
-        try:
-            df = pd.DataFrame({
-                'Index': list(range(len(self.esc1.voltage))),
-                'Voltage': self.esc1.voltage,
-                'Current': self.esc1.current,
-                'Temperature': self.esc1.temp,
-                'eRPM': self.esc1.e_rpm,
-                'Throttle Duty': self.esc1.t_duty,
-                'Motor Duty': self.esc1.m_duty,
-                'Phase Current': self.esc1.phase_current,
-                'Power': self.esc1.pwr,
-                'Status 1': self.esc1.stat_1,
-                'Status 2': self.esc1.stat_2,
-                'Serial Number': self.esc1.serial_number
-            })
-            fig = px.line(df, x='Index', y=['Voltage','Current','Temperature','eRPM','Throttle Duty','Motor Duty','Phase Current','Power'], title='ESC-1'+'  '+'Serial Number'+ self.esc1.serial_number)
-            return fig
-        except Exception as e:
-            print(f"Error in create_plot_1: {e}")
-            return px.Figure()
-
-    def create_plot_3(self):
-        try:
-            df = pd.DataFrame({
-                'Index': list(range(len(self.esc2.voltage))),
-                'Voltage': self.esc2.voltage,
-                'Current': self.esc2.current,
-                'Temperature': self.esc2.temp,
-                'eRPM': self.esc2.e_rpm,
-                'Throttle Duty': self.esc2.t_duty,
-                'Motor Duty': self.esc2.m_duty,
-                'Phase Current': self.esc2.phase_current,
-                'Power': self.esc2.pwr,
-                'Status 1': self.esc2.stat_1,
-                'Status 2': self.esc2.stat_2,
-                'Serial Number': self.esc2.serial_number
-            })
-            fig = px.line(df, x='Index', y=['Voltage','Current','Temperature','eRPM','Throttle Duty','Motor Duty','Phase Current','Power'], title='ESC-2'+'  '+'Serial Number'+ self.esc2.serial_number)
-            return fig
-        except Exception as e:
-            print(f"Error in create_plot_1: {e}")
-            return px.Figure()
-
-    def create_plot_4(self):
-        try:
-            df = pd.DataFrame({
-                'Index': list(range(len(self.esc3.voltage))),
-                'Voltage': self.esc3.voltage,
-                'Current': self.esc3.current,
-                'Temperature': self.esc3.temp,
-                'eRPM': self.esc3.e_rpm,
-                'Throttle Duty': self.esc3.t_duty,
-                'Motor Duty': self.esc3.m_duty,
-                'Phase Current': self.esc3.phase_current,
-                'Power': self.esc3.pwr,
-                'Status 1': self.esc3.stat_1,
-                'Status 2': self.esc3.stat_2,
-                'Serial Number': self.esc3.serial_number
-            })
-            fig = px.line(df, x='Index', y=['Voltage','Current','Temperature','eRPM','Throttle Duty','Motor Duty','Phase Current','Power'], title='ESC-3'+'  '+'Serial Number'+ self.esc3.serial_number)
-            return fig
-        except Exception as e:
-            print(f"Error in create_plot_1: {e}")
-            return px.Figure()
-
-    def create_tab(self, title, fig):
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".html") as tmp_file:
-            fig.write_html(tmp_file.name)
-            tmp_file_path = tmp_file.name
-
-        browser = QWebEngineView()
-        browser.setUrl(QUrl.fromLocalFile(tmp_file_path))
-
-        tab = QWidget()
-        layout = QVBoxLayout()
-        layout.addWidget(browser)
-        tab.setLayout(layout)
-        self.tab_widget.addTab(tab, title)
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -621,11 +37,12 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Main Window")
         self.setGeometry(100, 100, 900, 400)
         self.main_directory=None
+        self.files_path = []
 
-        self.esc0_data =[]
-        self.esc1_data =[]
-        self.esc2_data =[]
-        self.esc3_data =[]
+        self.esc0_data =None
+        self.esc1_data =None
+        self.esc2_data =None
+        self.esc3_data =None
 
         self.post_process_esc0 =[]
         self.post_process_esc1 =[]
@@ -745,12 +162,20 @@ class MainWindow(QMainWindow):
 
         self.buttons_tab.addTab(tab_widget, tab_name)
 
-    def flight_test(self,e0,e1,e2,e3):
+    def flight_test(self,e0=None,e1=None,e2=None,e3=None):
         test_type = 2
-        flight_e0 = copy.deepcopy(PostProcess(e0,type=test_type))
-        flight_e1 = copy.deepcopy(PostProcess(e1,type=test_type))
-        flight_e2 = copy.deepcopy(PostProcess(e2,type=test_type))
-        flight_e3 = copy.deepcopy(PostProcess(e3,type=test_type))
+        flight_e0 =None
+        flight_e1=None
+        flight_e2=None
+        flight_e3=None
+        if e0:
+            flight_e0 = copy.deepcopy(PostProcess(e0,type=test_type))
+        if e1:
+            flight_e1 = copy.deepcopy(PostProcess(e1,type=test_type))
+        if e2:
+            flight_e2 = copy.deepcopy(PostProcess(e2,type=test_type))
+        if e3:
+            flight_e3 = copy.deepcopy(PostProcess(e3,type=test_type))
 
         if not self.flight_test_tab_created:
             self.create_tab("Flight Test", self.open_individual_view_window,
@@ -759,12 +184,20 @@ class MainWindow(QMainWindow):
                             test_type,flight_e0,flight_e1,flight_e2,flight_e3)
             self.flight_test_tab_created = True
 
-    def combined_step_test(self,e0,e1,e2,e3):
+    def combined_step_test(self,e0=None,e1=None,e2=None,e3=None):
         test_type=1
-        combined_e0 = copy.deepcopy(PostProcess(e0, type=test_type, esc_id=0))
-        combined_e1 = copy.deepcopy(PostProcess(e1, type=test_type, esc_id=1))
-        combined_e2 = copy.deepcopy(PostProcess(e2, type=test_type, esc_id=2))
-        combined_e3 = copy.deepcopy(PostProcess(e3, type=test_type, esc_id=3))
+        combined_e0 = None
+        combined_e1 = None
+        combined_e2 = None
+        combined_e3 = None
+        if e0:
+            combined_e0 = copy.deepcopy(PostProcess(e0, type=test_type, esc_id=0))
+        if e1:
+            combined_e1 = copy.deepcopy(PostProcess(e1, type=test_type, esc_id=1))
+        if e2:
+            combined_e2 = copy.deepcopy(PostProcess(e2, type=test_type, esc_id=2))
+        if e3:
+            combined_e3 = copy.deepcopy(PostProcess(e3, type=test_type, esc_id=3))
 
         if not self.combined_step_test_tab_created:
             self.create_tab("Combined Step Test", self.open_individual_view_window,
@@ -772,13 +205,20 @@ class MainWindow(QMainWindow):
                             lambda: self.open_combined_view_window_combined_step_test(e0=combined_e0,e1=combined_e1,e2=combined_e2,e3=combined_e3),
                             test_type,combined_e0,combined_e1,combined_e2,combined_e3)
             self.combined_step_test_tab_created = True
-    def step_test(self,e0,e1,e2,e3):
+    def step_test(self,e0=None,e1=None,e2=None,e3=None):
         test_type = 0
-        step_e0 = copy.deepcopy(PostProcess(e0, type=test_type))
-        step_e1 = copy.deepcopy(PostProcess(e1, type=test_type))
-        step_e2 = copy.deepcopy(PostProcess(e2, type=test_type))
-        step_e3 = copy.deepcopy(PostProcess(e3, type=test_type))
-
+        step_e0 = None
+        step_e1 = None
+        step_e2 = None
+        step_e3 = None
+        if e0:
+            step_e0 = copy.deepcopy(PostProcess(e0, type=test_type))
+        if e1:
+            step_e1 = copy.deepcopy(PostProcess(e1, type=test_type))
+        if e2:
+            step_e2 = copy.deepcopy(PostProcess(e2, type=test_type))
+        if e3:
+            step_e3 = copy.deepcopy(PostProcess(e3, type=test_type))
 
         if not self.step_test_tab_created:
             self.create_tab("Step Test", self.open_individual_view_window,
@@ -787,27 +227,57 @@ class MainWindow(QMainWindow):
                             test_type, step_e0, step_e1, step_e2, step_e3)
             self.step_test_tab_created = True
 
+    def process_files(self, file_paths):
+
+        expected_files = ["esc0.csv", "esc1.csv", "esc2.csv", "esc3.csv"]
+        loaded_files = set()
+
+        # Iterate over the file paths
+        for file_path in file_paths:
+            try:
+                # Extract the actual file name from the path
+                actual_file = os.path.basename(file_path)
+
+                # Check if the actual file is one of the expected files
+                if actual_file in expected_files:
+                    if actual_file == "esc0.csv" and "esc0.csv" not in loaded_files:
+                        self.esc0_data = take_values_from_csv(Path(file_path))
+                        loaded_files.add("esc0.csv")
+                        print("esc0 Loaded.")
+                    elif actual_file == "esc1.csv" and "esc1.csv" not in loaded_files:
+                        self.esc1_data = take_values_from_csv(Path(file_path))
+                        loaded_files.add("esc1.csv")
+                        print("esc1 Loaded.")
+                    elif actual_file == "esc2.csv" and "esc2.csv" not in loaded_files:
+                        self.esc2_data = take_values_from_csv(Path(file_path))
+                        loaded_files.add("esc2.csv")
+                        print("esc2 Loaded.")
+                    elif actual_file == "esc3.csv" and "esc3.csv" not in loaded_files:
+                        self.esc3_data = take_values_from_csv(Path(file_path))
+                        loaded_files.add("esc3.csv")
+                        print("esc3 Loaded.")
+                else:
+                    print(f"Unexpected file found: {actual_file}")
+            except Exception as e:
+                print(f"Error processing {actual_file}: {e}")
+
+        # Check for any missing expected files
+        for expected_file in expected_files:
+            if expected_file not in loaded_files:
+                print(f"{expected_file} is missing and was not loaded.")
+
     def load_data_button(self):
             try:
-                self.esc0_data = take_values_from_csv(Path(self.files_path[0]))
-                self.esc1_data = take_values_from_csv(Path(self.files_path[1]))
-                self.esc2_data = take_values_from_csv(Path(self.files_path[2]))
-                self.esc3_data = take_values_from_csv(Path(self.files_path[3]))
-
-                if all([self.esc0_data is not None, self.esc1_data is not None,
-                        self.esc2_data is not None, self.esc3_data is not None]):
+                self.process_files(self.files_path)
+                if self.esc0_data or self.esc1_data or self.esc2_data or self.esc3_data:
                     self.tool_button.setEnabled(True)
-                    if not self.raw_tab_created:
-                        self.create_tab_raw("Raw", self.open_individual_view_window, self.open_comparison_view_window,
+                if not self.raw_tab_created:
+                    self.create_tab_raw("Raw", self.open_individual_view_window, self.open_comparison_view_window,
                                         self.open_combined_view_window)
-                        self.raw_tab_created = True
-                        self.tool_button.setEnabled(True)
+                    self.raw_tab_created = True
+                    self.tool_button.setEnabled(True)
                     self.load_label.setText("Files Loaded")
                     self.load_display_widget.setStyleSheet("background-color: green;")
-                else:
-                    self.tool_button.setEnabled(False)
-                    self.load_label.setText("Failed to Load")
-                    self.load_display_widget.setStyleSheet("background-color: gray;")
             except Exception as e:
                 print(f"An error occurred: {e}")
                 self.tool_button.setEnabled(False)
@@ -821,7 +291,6 @@ class MainWindow(QMainWindow):
         if folder_name:
             print(f"Selected folder: {folder_name}")
             self.main_directory=str(dir_temp)
-            self.files_path = []
             valid_folder = False
 
             for i in range(4):
@@ -846,8 +315,8 @@ class MainWindow(QMainWindow):
             print(self.files_path)
 
     def open_individual_view_window(self):
-        self.plot_window = IndividualView(e0=self.esc0_data,e1=self.esc1_data,e2=self.esc2_data,e3=self.esc3_data)
-        self.plot_window.exec()
+        dialog = IndividualView(e0=self.esc0_data,e1=self.esc1_data,e2=self.esc2_data,e3=self.esc3_data)
+        dialog.exec()
     def open_comparison_view_window(self):
         dialog = ComparisonView(e0=self.esc0_data,e1=self.esc1_data,e2=self.esc2_data,e3=self.esc3_data)
         dialog.exec()
