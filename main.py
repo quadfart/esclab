@@ -286,6 +286,7 @@ class MainWindow(QMainWindow):
 
 
     def open_folder_browser(self):
+        self.files_path.clear()
         folder_name = QFileDialog.getExistingDirectory(self, "Select Folder")
         dir_temp=str(folder_name)
         if folder_name:
@@ -302,7 +303,12 @@ class MainWindow(QMainWindow):
                     print(f"File not found: {csv_name}")
 
             if self.files_path:
-                self.load_button.setEnabled(True)  # Enable button only if at least one file exists
+                self.load_button.setEnabled(True)
+                self.esc0_data=None
+                self.esc1_data=None
+                self.esc2_data=None
+                self.esc3_data=None
+                # Enable button only if at least one file exists
             else:
                 self.load_button.setEnabled(False)  # Disable button if no files are found
 

@@ -9,8 +9,11 @@ from matplotlib.backends.backend_qt import NavigationToolbar2QT
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.widgets import SpanSelector
 from PyQt6.QtWidgets import QApplication, QDialog, QVBoxLayout, QGridLayout, QComboBox, QLabel, QWidget, QHBoxLayout, \
-    QPushButton, QSpinBox, QStackedWidget
+    QPushButton, QSpinBox, QStackedWidget, QCheckBox
 from functools import partial
+
+from pyqt6_plugins.examplebutton import QtWidgets
+
 from abstraction import EscData
 
 class ProcessTool(QDialog):
@@ -81,13 +84,14 @@ class ProcessTool(QDialog):
         # Place Zero Utility
         self.selected_esc = None
         self.init_list=[]
+        self.active_list=[]
         place_zero_button_layout = QHBoxLayout()
         self.place_zero_button = QPushButton("Place 0")
         self.place_zero_button.clicked.connect(self.place_zero)
         self.int_input = QSpinBox()
         self.input_esc = QComboBox()
         self.get_init_esc()
-        print("len init list:",len(self.init_list))
+        print(self.active_list)
         self.input_esc.addItems(self.init_list)
         self.input_esc.setCurrentIndex(0)
         self.int_input.setMaximum(self.get_max_index(self.init_list[self.input_esc.currentIndex()]))
@@ -98,9 +102,7 @@ class ProcessTool(QDialog):
         place_zero_button_layout.addWidget(self.input_esc)
         self.right_layout.addLayout(place_zero_button_layout)
         # Place Zero Utility
-
-
-
+        self.create_checkbox()
         # Add the right layout to the main layout
         right_widget = QWidget()
         right_widget.setLayout(self.right_layout)
@@ -263,12 +265,16 @@ class ProcessTool(QDialog):
     def get_init_esc(self):
         if self.esc0:
             self.init_list.append("Esc 0")
+            self.active_list.append(0)
         if self.esc1:
             self.init_list.append("Esc 1")
+            self.active_list.append(1)
         if self.esc2:
             self.init_list.append("Esc 2")
+            self.active_list.append(2)
         if self.esc3:
             self.init_list.append("Esc 3")
+            self.active_list.append(3)
 
     def place_zero(self):
         value = self.int_input.value()
@@ -349,6 +355,13 @@ class ProcessTool(QDialog):
         self.post_process_run.setEnabled(True)
 
     def on_button_clicked(self):
+
+        for active in self.active_list:
+            checkbox = self.checkboxes[active]
+            if not checkbox.isChecked():
+                # Dynamically set self.cropped_esc{active} to None
+                setattr(self, f'cropped_esc{active}', None)
+
         if self.dropdown.currentIndex() == 0:
             self.main_window.step_test(e0=self.cropped_esc0, e1=self.cropped_esc1, e2=self.cropped_esc2, e3=self.cropped_esc3)
         elif self.dropdown.currentIndex() == 1:
@@ -388,3 +401,17 @@ class ProcessTool(QDialog):
     def update_max_index(self,index):
         max_value = self.get_max_index(index)
         self.int_input.setMaximum(max_value)
+
+    def create_checkbox(self):
+        self.checkboxes = []
+        for i in range(4):
+            checkbox = QCheckBox(f"Esc {i}")
+            checkbox.setEnabled(False)  # Initially disable all checkboxes
+            checkbox.setChecked(False)  # Set them all to checked by default
+            self.right_layout.addWidget(checkbox)
+            self.checkboxes.append(checkbox)
+
+        # Enable the checkboxes that correspond to indices in active_list
+        for active in self.active_list:
+            self.checkboxes[active].setChecked(True)
+            self.checkboxes[active].setEnabled(True)
