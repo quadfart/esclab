@@ -1,35 +1,19 @@
 import copy
-import json
 import os
 import sys
-import tempfile
-import save_utility
-from ctypes import py_object
 from pathlib import Path
-import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
-from PyQt6.QtCore import QUrl, Qt
-from PyQt6.QtCore import pyqtSlot, QObject, QUrl
-from PyQt6.QtWebEngineWidgets import QWebEngineView
-from PyQt6.QtWebChannel import QWebChannel
-from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QVBoxLayout, QWidget, QDialog, QFileDialog, \
-    QTabWidget, QListWidget, QHBoxLayout, QCheckBox, QLabel, QComboBox
-from plotly.subplots import make_subplots
-import matplotlib.pyplot as plt
-from PyQt6.QtCore import Qt
-from matplotlib.backends.backend_qt import NavigationToolbar2QT
-from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.widgets import SpanSelector
 
+from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QVBoxLayout, QWidget, QFileDialog, \
+    QTabWidget, QHBoxLayout, QLabel
 
-from abstraction import take_values_from_csv, EscData
+from abstraction import take_values_from_csv
 from combined_view import CombinedView
 from comparison_view import ComparisonView
 from data_process import PostProcess
 from individual_view import IndividualView
 from process_tool import ProcessTool
 from save_utility import test_mkdir
+
 
 class MainWindow(QMainWindow):
     def __init__(self):

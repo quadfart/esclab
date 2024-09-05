@@ -1,6 +1,6 @@
 import copy
 import csv
-from pathlib import Path
+
 
 class EscData:
     voltage = []

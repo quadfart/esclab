@@ -1,9 +1,6 @@
-
 import tempfile
 import pandas as pd
-import plotly.express as px
 import plotly.graph_objects as go
-from PyQt6.QtCore import QUrl, Qt
 from PyQt6.QtCore import pyqtSlot, QObject, QUrl
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QVBoxLayout, QWidget, QDialog, QFileDialog, \

@@ -1,6 +1,4 @@
-import sys
 import copy
-import matplotlib.widgets
 import numpy as np
 import matplotlib.pyplot as plt
 from PyQt6.QtCore import Qt
@@ -8,7 +6,7 @@ from matplotlib.backends.backend_qt import NavigationToolbar2QT
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.widgets import SpanSelector
 from PyQt6.QtWidgets import QApplication, QDialog, QVBoxLayout, QGridLayout, QComboBox, QLabel, QWidget, QHBoxLayout, \
-    QPushButton, QSpinBox, QStackedWidget, QCheckBox
+    QPushButton, QSpinBox, QCheckBox
 from abstraction import EscData
 
 class ProcessTool(QDialog):

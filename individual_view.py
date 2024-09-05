@@ -1,13 +1,11 @@
 import tempfile
+
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
-from PyQt6.QtCore import QUrl, Qt
-from PyQt6.QtCore import pyqtSlot, QObject, QUrl
-from PyQt6.QtWebEngineWidgets import QWebEngineView
-from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QVBoxLayout, QWidget, QDialog, QFileDialog, \
-    QTabWidget, QListWidget, QHBoxLayout, QCheckBox, QLabel, QComboBox
+from PyQt6.QtCore import QUrl
 from PyQt6.QtCore import Qt
+from PyQt6.QtWebEngineWidgets import QWebEngineView
+from PyQt6.QtWidgets import QVBoxLayout, QWidget, QDialog, QTabWidget
 
 from abstraction import EscData
 
