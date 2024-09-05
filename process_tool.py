@@ -4,16 +4,11 @@ import matplotlib.widgets
 import numpy as np
 import matplotlib.pyplot as plt
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QPalette
 from matplotlib.backends.backend_qt import NavigationToolbar2QT
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.widgets import SpanSelector
 from PyQt6.QtWidgets import QApplication, QDialog, QVBoxLayout, QGridLayout, QComboBox, QLabel, QWidget, QHBoxLayout, \
     QPushButton, QSpinBox, QStackedWidget, QCheckBox
-from functools import partial
-
-from pyqt6_plugins.examplebutton import QtWidgets
-
 from abstraction import EscData
 
 class ProcessTool(QDialog):
@@ -82,9 +77,12 @@ class ProcessTool(QDialog):
         self.right_layout.setSpacing(5)
 
         # Place Zero Utility
+        self.max_range = []
+        self.checkboxes = []
         self.selected_esc = None
         self.init_list=[]
         self.active_list=[]
+        self.checked_num=None
         place_zero_button_layout = QHBoxLayout()
         self.place_zero_button = QPushButton("Place 0")
         self.place_zero_button.clicked.connect(self.place_zero)
@@ -92,9 +90,10 @@ class ProcessTool(QDialog):
         self.input_esc = QComboBox()
         self.get_init_esc()
         print(self.active_list)
+        self.index_get()
         self.input_esc.addItems(self.init_list)
         self.input_esc.setCurrentIndex(0)
-        self.int_input.setMaximum(self.get_max_index(self.init_list[self.input_esc.currentIndex()]))
+        self.int_input.setMaximum(self.max_range[self.input_esc.currentIndex()])
         self.input_esc.currentIndexChanged.connect(self.update_max_index)
         self.int_input.setMinimum(0)
         place_zero_button_layout.addWidget(self.place_zero_button)
@@ -102,11 +101,13 @@ class ProcessTool(QDialog):
         place_zero_button_layout.addWidget(self.input_esc)
         self.right_layout.addLayout(place_zero_button_layout)
         # Place Zero Utility
+
         self.create_checkbox()
         # Add the right layout to the main layout
         right_widget = QWidget()
         right_widget.setLayout(self.right_layout)
         layout.addWidget(right_widget,0,1)
+
 
         self.fig, (self.ax0) = plt.subplots(figsize=(8, 6))
         self.canvas = FigureCanvas(self.fig)
@@ -278,7 +279,7 @@ class ProcessTool(QDialog):
 
     def place_zero(self):
         value = self.int_input.value()
-        esc = self.selected_esc
+        esc = self.active_list[self.input_esc.currentIndex()]
         if esc == 0:
             self.esc0.t_duty[value]=0
         elif esc == 1:
@@ -308,8 +309,10 @@ class ProcessTool(QDialog):
         # Count the number of non-None tuples in self.crop_range
         non_none_count = sum(1 for i in self.crop_range if i[0] is not None and i[1] is not None)
 
+        if self.checked_num == 0:
+            self.crop_button.setEnabled(False)
         # Check if the count matches the length of self.init_list
-        if non_none_count == len(self.init_list):
+        elif non_none_count >= self.checked_num:
             # Enable the button
             self.crop_button.setEnabled(True)
         else:
@@ -377,37 +380,17 @@ class ProcessTool(QDialog):
         elif self.dropdown.currentIndex() == 2:
             self.post_process_run.setText("Run Flight Test")
 
-    def get_max_index(self,esc):
-        if esc == "Esc 0":
-            if not self.esc0:
-                pass
-            self.selected_esc=esc
-            return int(len(self.esc0.timestamp)-1)
-        elif esc == "Esc 1":
-            if not self.esc1:
-                pass
-            self.selected_esc=esc
-            return int(len(self.esc1.timestamp)-1)
-        elif esc == "Esc 2":
-            if not self.esc2:
-                pass
-            self.selected_esc=esc
-            return int(len(self.esc2.timestamp)-1)
-        elif esc == "Esc 3":
-            if not self.esc3:
-                pass
-            self.selected_esc=esc
-            return int(len(self.esc3.timestamp)-1)
-    def update_max_index(self,index):
-        max_value = self.get_max_index(index)
-        self.int_input.setMaximum(max_value)
+    def update_max_index(self):
+        self.int_input.setMaximum(self.max_range[self.input_esc.currentIndex()])
 
     def create_checkbox(self):
-        self.checkboxes = []
+
         for i in range(4):
             checkbox = QCheckBox(f"Esc {i}")
             checkbox.setEnabled(False)  # Initially disable all checkboxes
             checkbox.setChecked(False)  # Set them all to checked by default
+            checkbox.checkStateChanged.connect(self.check_num_update)
+            checkbox.checkStateChanged.connect(self.check_crop)
             self.right_layout.addWidget(checkbox)
             self.checkboxes.append(checkbox)
 
@@ -415,3 +398,22 @@ class ProcessTool(QDialog):
         for active in self.active_list:
             self.checkboxes[active].setChecked(True)
             self.checkboxes[active].setEnabled(True)
+        self.check_num_update()
+
+    def index_get(self):
+        temp = []
+        for active in self.active_list:
+            temp = getattr(self,f'esc{active}',None)
+            if temp is not None:
+                self.max_range.append(len(temp.timestamp))
+            else:
+                print("oops")
+        print(self.max_range)
+
+    def check_num_update(self):
+        num=0
+        for active in self.active_list:
+            if self.checkboxes[active].isChecked():
+                num+=1
+        self.checked_num = num
+        print(self.checked_num)
