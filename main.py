@@ -5,6 +5,7 @@ from pathlib import Path
 
 from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QVBoxLayout, QWidget, QFileDialog, \
     QTabWidget, QHBoxLayout, QLabel
+from prompt_toolkit.key_binding.bindings.named_commands import self_insert
 
 from abstraction import take_values_from_csv
 from combined_view import CombinedView
@@ -51,6 +52,8 @@ class MainWindow(QMainWindow):
         left_layout.addWidget(self.logo_label)
 
         self.buttons_tab = QTabWidget(self)
+        self.buttons_tab.setTabsClosable(True)
+        self.buttons_tab.tabCloseRequested.connect(self.close_tab)
         left_layout.addWidget(self.buttons_tab)
 
         self.raw_tab_created = False
@@ -103,6 +106,7 @@ class MainWindow(QMainWindow):
         tab_layout = QVBoxLayout()
         tab_widget.setLayout(tab_layout)
 
+
         individual_view_button = QPushButton("Individual View", self)
         individual_view_button.clicked.connect(individual_callback)
         individual_view_button.setFixedHeight(60)
@@ -145,6 +149,18 @@ class MainWindow(QMainWindow):
         tab_layout.addWidget(combined_view_button)
 
         self.buttons_tab.addTab(tab_widget, tab_name)
+
+    def close_tab(self,index):
+
+        if self.buttons_tab.tabText(index) == "Raw":
+            self.raw_tab_created=False
+        if self.buttons_tab.tabText(index) == "Step Test":
+            self.step_test_tab_created=False
+        if self.buttons_tab.tabText(index) == "Combined Step Test":
+            self.combined_step_test_tab_created=False
+        if self.buttons_tab.tabText(index) == "Flight Test":
+            self.flight_test_tab_created=False
+        self.buttons_tab.removeTab(index)
 
     def flight_test(self,e0=None,e1=None,e2=None,e3=None):
         test_type = 2
