@@ -1,9 +1,7 @@
 import os
 import csv
-from abstraction import EscData
-from data_process import PostProcess
 
-def test_mkdir(files_path, test_type, e0=None, e1=None, e2=None, e3=None):
+def test_mkdir(files_path, test_type, e0=None, e1=None, e2=None, e3=None,console_widget=None):
     try:
         directory = None
         if test_type == 0:
@@ -15,22 +13,23 @@ def test_mkdir(files_path, test_type, e0=None, e1=None, e2=None, e3=None):
 
         path = os.path.join(files_path, directory)
         os.makedirs(path, exist_ok=True)
-        csv_make(path, e0, e1, e2, e3)
+        csv_make(path, e0, e1, e2, e3, console_widget)
     except Exception as e:
-        print(f"An error occurred: {e}")
+        console_widget.log(f"An error occurred: {e}")
 
 
-def csv_make(path, e0=None, e1=None, e2=None, e3=None):
+def csv_make(path, e0=None, e1=None, e2=None, e3=None,console_widget=None):
     filenames = ["esc0.csv", "esc1.csv", "esc2.csv", "esc3.csv"]
     headers = ["Time", "Voltage (V)", "Current (A)", "Temperature (C)", "RPM",
                "Throttle Duty", "Motor Duty", "Phase Current", "Power(W)"]
 
     for i, data in enumerate([e0, e1, e2, e3]):
         if data is not None:
-            print(f"Creating CSV for e{i} at: {os.path.join(path, filenames[i])}")
-            esc_csv_make(headers, data, os.path.join(path, filenames[i]))
+            console_widget.log(f"Creating CSV for e{i} at: {os.path.join(path, filenames[i])}")
+            esc_csv_make(headers, data, os.path.join(path, filenames[i]),console_widget)
+    console_widget.log("All CSV files created.")
 
-def esc_csv_make(headers, esc, path):
+def esc_csv_make(headers, esc, path,console_widget=None):
     try:
         head = headers.copy()
         head.append("Serial Number: " + esc.serial_number)
@@ -41,4 +40,4 @@ def esc_csv_make(headers, esc, path):
             writer.writerow(head)
             writer.writerows(rows)
     except Exception as e:
-        print(f"An error occurred while writing CSV file {path}: {e}")
+        console_widget.log(f"An error occurred while writing CSV file {path}: {e}")

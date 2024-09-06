@@ -2,11 +2,8 @@ import copy
 import os
 import sys
 from pathlib import Path
-
 from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QVBoxLayout, QWidget, QFileDialog, \
     QTabWidget, QHBoxLayout, QLabel
-from prompt_toolkit.key_binding.bindings.named_commands import self_insert
-
 from abstraction import take_values_from_csv
 from combined_view import CombinedView
 from comparison_view import ComparisonView
@@ -14,6 +11,7 @@ from data_process import PostProcess
 from individual_view import IndividualView
 from process_tool import ProcessTool
 from save_utility import test_mkdir
+from console_widget import ConsoleWidget
 
 
 class MainWindow(QMainWindow):
@@ -101,6 +99,10 @@ class MainWindow(QMainWindow):
         self.tool_button.clicked.connect(self.open_process_tool_window)
         self.tool_button.setEnabled(False)
         right_layout.addWidget(self.tool_button)
+
+        self.console= ConsoleWidget()
+        right_layout.addWidget(self.console)
+
     def create_tab_raw(self, tab_name, individual_callback, comparison_callback, combined_callback):
         tab_widget = QWidget()
         tab_layout = QVBoxLayout()
@@ -123,13 +125,14 @@ class MainWindow(QMainWindow):
         tab_layout.addWidget(combined_view_button)
 
         self.buttons_tab.addTab(tab_widget, tab_name)
+        self.console.log(f'>{tab_name} Data Tab Loaded')
     def create_tab(self, tab_name, individual_callback, comparison_callback, combined_callback,test_type=None,e0=None,e1=None,e2=None,e3=None):
         tab_widget = QWidget()
         tab_layout = QVBoxLayout()
         tab_widget.setLayout(tab_layout)
 
         save_button=QPushButton(tab_name+" Save", self)
-        save_button.clicked.connect(lambda:test_mkdir(self.main_directory,test_type,e0,e1,e2,e3))
+        save_button.clicked.connect(lambda:test_mkdir(self.main_directory,test_type,e0,e1,e2,e3,self.console))
         save_button.setFixedHeight(60)
         tab_layout.addWidget(save_button)
 
@@ -149,6 +152,7 @@ class MainWindow(QMainWindow):
         tab_layout.addWidget(combined_view_button)
 
         self.buttons_tab.addTab(tab_widget, tab_name)
+        self.console.log(f'>{tab_name} Data Tab loaded')
 
     def close_tab(self,index):
 
@@ -160,7 +164,9 @@ class MainWindow(QMainWindow):
             self.combined_step_test_tab_created=False
         if self.buttons_tab.tabText(index) == "Flight Test":
             self.flight_test_tab_created=False
+        self.console.log(f'>{self.buttons_tab.tabText(index)} Tab Closed : Data Erased')
         self.buttons_tab.removeTab(index)
+
 
     def flight_test(self,e0=None,e1=None,e2=None,e3=None):
         test_type = 2
@@ -243,28 +249,28 @@ class MainWindow(QMainWindow):
                     if actual_file == "esc0.csv" and "esc0.csv" not in loaded_files:
                         self.esc0_data = take_values_from_csv(Path(file_path))
                         loaded_files.add("esc0.csv")
-                        print("esc0 Loaded.")
+                        self.console.log(">esc0 Loaded.")
                     elif actual_file == "esc1.csv" and "esc1.csv" not in loaded_files:
                         self.esc1_data = take_values_from_csv(Path(file_path))
                         loaded_files.add("esc1.csv")
-                        print("esc1 Loaded.")
+                        self.console.log(">esc1 Loaded.")
                     elif actual_file == "esc2.csv" and "esc2.csv" not in loaded_files:
                         self.esc2_data = take_values_from_csv(Path(file_path))
                         loaded_files.add("esc2.csv")
-                        print("esc2 Loaded.")
+                        self.console.log(">esc2 Loaded.")
                     elif actual_file == "esc3.csv" and "esc3.csv" not in loaded_files:
                         self.esc3_data = take_values_from_csv(Path(file_path))
                         loaded_files.add("esc3.csv")
-                        print("esc3 Loaded.")
+                        self.console.log(">esc3 Loaded.")
                 else:
-                    print(f"Unexpected file found: {actual_file}")
+                    self.console.log(f"Unexpected file found: {actual_file}")
             except Exception as e:
-                print(f"Error processing {actual_file}: {e}")
+                self.console.log(f"Error processing {actual_file}: {e}")
 
         # Check for any missing expected files
         for expected_file in expected_files:
             if expected_file not in loaded_files:
-                print(f"{expected_file} is missing and was not loaded.")
+                self.console.log(f"{expected_file} is missing and was not loaded.")
 
     def load_data_button(self):
             try:
@@ -279,7 +285,7 @@ class MainWindow(QMainWindow):
                     self.load_label.setText("Files Loaded")
                     self.load_display_widget.setStyleSheet("background-color: green;")
             except Exception as e:
-                print(f"An error occurred: {e}")
+                self.console.log(f"An error occurred: {e}")
                 self.tool_button.setEnabled(False)
                 self.load_label.setText("Error occurred")
                 self.path_display_widget.setStyleSheet("background-color: gray;")
@@ -290,7 +296,7 @@ class MainWindow(QMainWindow):
         folder_name = QFileDialog.getExistingDirectory(self, "Select Folder")
         dir_temp=str(folder_name)
         if folder_name:
-            print(f"Selected folder: {folder_name}")
+            self.console.log(f"Selected folder: {folder_name}")
             self.main_directory=str(dir_temp)
             valid_folder = False
 
@@ -300,7 +306,7 @@ class MainWindow(QMainWindow):
                     self.files_path.append(csv_name)
                     valid_folder = True
                 else:
-                    print(f"File not found: {csv_name}")
+                    self.console.log(f"File not found: {csv_name}")
 
             if self.files_path:
                 self.load_button.setEnabled(True)

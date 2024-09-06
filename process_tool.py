@@ -8,6 +8,7 @@ from matplotlib.widgets import SpanSelector
 from PyQt6.QtWidgets import QApplication, QDialog, QVBoxLayout, QGridLayout, QComboBox, QLabel, QWidget, QHBoxLayout, \
     QPushButton, QSpinBox, QCheckBox
 from abstraction import EscData
+from console_widget import ConsoleWidget
 
 class ProcessTool(QDialog):
     def __init__(self,main_window):
@@ -48,7 +49,7 @@ class ProcessTool(QDialog):
         self.dropdown.addItems(["Step Test", "Combined Step Test", "Flight Test"])
         self.dropdown.setCurrentIndex(0)
         self.dropdown.currentIndexChanged.connect(self.dropdown_text_set)
-
+        self.console=ConsoleWidget()
         # Content box that changes based on dropdown selection
         # Labels for x-axis range
         self.x_range_label_esc0 = QLabel("Esc 0 Range: Not selected")
@@ -71,8 +72,7 @@ class ProcessTool(QDialog):
         self.right_layout.addWidget(self.x_range_label_esc1)
         self.right_layout.addWidget(self.x_range_label_esc2)
         self.right_layout.addWidget(self.x_range_label_esc3)
-        self.right_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-        self.right_layout.setSpacing(5)
+
 
         # Place Zero Utility
         self.max_range = []
@@ -106,6 +106,11 @@ class ProcessTool(QDialog):
         right_widget.setLayout(self.right_layout)
         layout.addWidget(right_widget,0,1)
 
+        self.right_layout.addStretch()
+        self.right_layout.addWidget(self.console)
+        self.right_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self.right_layout.setSpacing(5)
+        self.console.log("Process Tool Initialized.")
 
         self.fig, (self.ax0) = plt.subplots(figsize=(8, 6))
         self.canvas = FigureCanvas(self.fig)
@@ -280,12 +285,16 @@ class ProcessTool(QDialog):
         esc = self.active_list[self.input_esc.currentIndex()]
         if esc == 0:
             self.esc0.t_duty[value]=0
+            self.console.log(f'Place Zero ESC-0 at Index: {value}')
         elif esc == 1:
             self.esc1.t_duty[value]=0
+            self.console.log(f'Place Zero ESC-1 at Index: {value}')
         elif esc == 2:
             self.esc2.t_duty[value]=0
+            self.console.log(f'Place Zero ESC-2 at Index: {value}')
         elif esc == 3:
             self.esc3.t_duty[value]=0
+            self.console.log(f'Place Zero ESC-3 at Index: {value}')
         if self.ax0:
             self.ax0.clear()
             self.ax0.plot(self.esc0.timestamp, self.esc0.t_duty)
@@ -352,7 +361,7 @@ class ProcessTool(QDialog):
             if self.cropped_esc3 and range3:
                 attr3 = getattr(self.cropped_esc3, name)
                 setattr(self.cropped_esc3, name, attr3[range3[0]:range3[1]])
-
+        self.console.log(f'Data Cropped :{range0},{range1},{range2},{range3}')
         self.post_process_run.setEnabled(True)
 
     def on_button_clicked(self):
@@ -365,10 +374,19 @@ class ProcessTool(QDialog):
 
         if self.dropdown.currentIndex() == 0:
             self.main_window.step_test(e0=self.cropped_esc0, e1=self.cropped_esc1, e2=self.cropped_esc2, e3=self.cropped_esc3)
+            self.console.log(f'>Step Test Initialized')
+            if getattr(self.main_window,'step_test_tab_created'):
+                self.console.log(f'>Step Test Created')
         elif self.dropdown.currentIndex() == 1:
             self.main_window.combined_step_test(e0=self.cropped_esc0, e1=self.cropped_esc1, e2=self.cropped_esc2, e3=self.cropped_esc3)
+            self.console.log(f'>Combined Step Test Initialized')
+            if getattr(self.main_window,'combined_step_test_tab_created'):
+                self.console.log(f'>Combined Step Test Created')
         elif self.dropdown.currentIndex() == 2:
             self.main_window.flight_test(e0=self.cropped_esc0, e1=self.cropped_esc1, e2=self.cropped_esc2, e3=self.cropped_esc3)
+            self.console.log(f'>Flight Test Initialized')
+            if getattr(self.main_window,'flight_test_tab_created'):
+                self.console.log(f'>Flight Test Created')
 
     def dropdown_text_set(self):
         if self.dropdown.currentIndex() == 0:
