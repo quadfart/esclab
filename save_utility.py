@@ -14,8 +14,10 @@ def test_mkdir(files_path, test_type, e0=None, e1=None, e2=None, e3=None,console
         path = os.path.join(files_path, directory)
         os.makedirs(path, exist_ok=True)
         csv_make(path, e0, e1, e2, e3, console_widget)
+        if test_type==0:
+            throttle_rpm_make(path, e0, e1, e2, e3, console_widget)
     except Exception as e:
-        console_widget.log(f"An error occurred: {e}")
+        console_widget.log(f"++An error occurred: {e}")
 
 
 def csv_make(path, e0=None, e1=None, e2=None, e3=None,console_widget=None):
@@ -25,9 +27,9 @@ def csv_make(path, e0=None, e1=None, e2=None, e3=None,console_widget=None):
 
     for i, data in enumerate([e0, e1, e2, e3]):
         if data is not None:
-            console_widget.log(f"Creating CSV for e{i} at: {os.path.join(path, filenames[i])}")
+            console_widget.log(f"++Creating CSV for e{i} at: {os.path.join(path, filenames[i])}")
             esc_csv_make(headers, data, os.path.join(path, filenames[i]),console_widget)
-    console_widget.log("All CSV files created.")
+    console_widget.log("++All CSV files created.")
 
 def esc_csv_make(headers, esc, path,console_widget=None):
     try:
@@ -40,4 +42,26 @@ def esc_csv_make(headers, esc, path,console_widget=None):
             writer.writerow(head)
             writer.writerows(rows)
     except Exception as e:
-        console_widget.log(f"An error occurred while writing CSV file {path}: {e}")
+        console_widget.log(f"++An error occurred while writing CSV file {path}: {e}")
+
+
+def throttle_rpm_make(path, e0=None, e1=None, e2=None, e3=None, console_widget=None):
+    path = os.path.join(path, "Summary")
+    os.makedirs(path, exist_ok=True)
+    filenames = ["esc0-summary.csv", "esc1-summary.csv", "esc2-summary.csv", "esc3-summary.csv"]
+
+    for i, data in enumerate([e0, e1, e2, e3]):
+        if data is not None:
+            file_path = os.path.join(path, filenames[i])  # Correct file path
+            console_widget.log(f"++Creating SUMMARY for e{i} at: {file_path}")
+            try:
+                head = ["RPM", "Throttle"]
+                rows = zip(data.mean_rpm, data.mean_thr)
+                with open(file_path, 'w', newline='') as csvfile:  # Open file_path, not path
+                    writer = csv.writer(csvfile, delimiter=',')
+                    writer.writerow(head)
+                    writer.writerows(rows)
+            except Exception as e:
+                console_widget.log(f"++An error occurred while writing SUMMARY file {file_path}: {e}")
+
+    console_widget.log("All CSV files created.")
