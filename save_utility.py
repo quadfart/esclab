@@ -55,8 +55,9 @@ def throttle_rpm_make(path, e0=None, e1=None, e2=None, e3=None, console_widget=N
             file_path = os.path.join(path, filenames[i])  # Correct file path
             console_widget.log(f"++Creating SUMMARY for e{i} at: {file_path}")
             try:
-                head = ["RPM", "Throttle"]
-                rows = zip(data.mean_rpm, data.mean_thr)
+                head = ["Throttle", "RPM", "Voltage", "Current", "Temperature", "Phase Current", "Motor Duty",
+                        "Serial Number: " + data.serial_number]
+                rows = zip(data.mean_thr, data.mean_rpm,data.mean_voltage,data.mean_current,data.mean_temp,data.mean_phase_current,data.mean_m_duty)
                 with open(file_path, 'w', newline='') as csvfile:  # Open file_path, not path
                     writer = csv.writer(csvfile, delimiter=',')
                     writer.writerow(head)

@@ -11,6 +11,12 @@ class PostProcess(EscData):
         self.zero_crossing=[]
         self.mean_rpm=[]
         self.mean_thr=[]
+        self.mean_voltage=[]
+        self.mean_current=[]
+        self.mean_temp=[]
+        self.mean_phase_current=[]
+        self.mean_pwr=[]
+        self.mean_m_duty=[]
         self.test_type=type
         if type == 0:
             self.t_duty.insert(0,0)
@@ -262,5 +268,10 @@ class PostProcess(EscData):
             step_start_idx, step_end_idx = filtered_steps[i_stp]
             self.mean_rpm.append(np.mean(self.rpm[step_start_idx:step_end_idx + 1]))
             self.mean_thr.append(np.mean(self.t_duty[step_start_idx:step_end_idx + 1]))
+            self.mean_voltage.append(np.mean(self.voltage[step_start_idx:step_end_idx + 1]))
+            self.mean_current.append(np.mean(self.current[step_start_idx:step_end_idx + 1]))
+            self.mean_temp.append(np.mean(self.temp[step_start_idx:step_end_idx + 1]))
+            self.mean_phase_current.append(np.mean(self.phase_current[step_start_idx:step_end_idx + 1]))
+            self.mean_m_duty.append(np.mean(self.m_duty[step_start_idx:step_end_idx + 1]))
 
         print("Step Test Values Set.")
