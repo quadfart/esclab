@@ -164,13 +164,13 @@ class MainWindow(QMainWindow):
             self.combined_step_test_tab_created=False
         if self.buttons_tab.tabText(index) == "Flight Test":
             self.flight_test_tab_created=False
-        self.console.log(f'>{self.buttons_tab.tabText(index)} Tab Closed : Data Erased')
+        self.console.notify(f'>{self.buttons_tab.tabText(index)} Tab Closed : Data Erased')
         self.buttons_tab.removeTab(index)
 
 
     def flight_test(self,e0=None,e1=None,e2=None,e3=None):
         test_type = 2
-        flight_e0 =None
+        flight_e0=None
         flight_e1=None
         flight_e2=None
         flight_e3=None
@@ -263,14 +263,14 @@ class MainWindow(QMainWindow):
                         loaded_files.add("esc3.csv")
                         self.console.log(">esc3 Loaded.")
                 else:
-                    self.console.log(f"Unexpected file found: {actual_file}")
+                    self.console.alert(f"Unexpected file found: {actual_file}")
             except Exception as e:
-                self.console.log(f"Error processing {actual_file}: {e}")
+                self.console.alert(f"Error processing {actual_file}: {e}")
 
         # Check for any missing expected files
         for expected_file in expected_files:
             if expected_file not in loaded_files:
-                self.console.log(f"{expected_file} is missing and was not loaded.")
+                self.console.notify(f"{expected_file} is missing and was not loaded.")
 
     def load_data_button(self):
             try:
@@ -306,7 +306,7 @@ class MainWindow(QMainWindow):
                     self.files_path.append(csv_name)
                     valid_folder = True
                 else:
-                    self.console.log(f"File not found: {csv_name}")
+                    self.console.alert(f"File not found: {csv_name}")
 
             if self.files_path:
                 self.load_button.setEnabled(True)

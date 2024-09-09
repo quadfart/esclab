@@ -17,7 +17,7 @@ def test_mkdir(files_path, test_type, e0=None, e1=None, e2=None, e3=None,console
         if test_type==0:
             throttle_rpm_make(path, e0, e1, e2, e3, console_widget)
     except Exception as e:
-        console_widget.log(f"++An error occurred: {e}")
+        console_widget.alert(f"!+An error occurred: {e}")
 
 
 def csv_make(path, e0=None, e1=None, e2=None, e3=None,console_widget=None):
@@ -27,7 +27,7 @@ def csv_make(path, e0=None, e1=None, e2=None, e3=None,console_widget=None):
 
     for i, data in enumerate([e0, e1, e2, e3]):
         if data is not None:
-            console_widget.log(f"++Creating CSV for e{i} at: {os.path.join(path, filenames[i])}")
+            console_widget.notify(f"++Creating CSV for e{i} at: {os.path.join(path, filenames[i])}")
             esc_csv_make(headers, data, os.path.join(path, filenames[i]),console_widget)
     console_widget.log("++All CSV files created.")
 
@@ -42,7 +42,7 @@ def esc_csv_make(headers, esc, path,console_widget=None):
             writer.writerow(head)
             writer.writerows(rows)
     except Exception as e:
-        console_widget.log(f"++An error occurred while writing CSV file {path}: {e}")
+        console_widget.alert(f"!+An error occurred while writing CSV file {path}: {e}")
 
 
 def throttle_rpm_make(path, e0=None, e1=None, e2=None, e3=None, console_widget=None):
@@ -53,7 +53,7 @@ def throttle_rpm_make(path, e0=None, e1=None, e2=None, e3=None, console_widget=N
     for i, data in enumerate([e0, e1, e2, e3]):
         if data is not None:
             file_path = os.path.join(path, filenames[i])  # Correct file path
-            console_widget.log(f"++Creating SUMMARY for e{i} at: {file_path}")
+            console_widget.notify(f"++Creating SUMMARY for e{i} at: {file_path}")
             try:
                 head = ["Throttle", "RPM", "Voltage", "Current", "Temperature", "Phase Current", "Motor Duty",
                         "Serial Number: " + data.serial_number]
@@ -63,6 +63,6 @@ def throttle_rpm_make(path, e0=None, e1=None, e2=None, e3=None, console_widget=N
                     writer.writerow(head)
                     writer.writerows(rows)
             except Exception as e:
-                console_widget.log(f"++An error occurred while writing SUMMARY file {file_path}: {e}")
+                console_widget.alert(f"!+An error occurred while writing SUMMARY file {file_path}: {e}")
 
-    console_widget.log("All CSV files created.")
+    console_widget.log("++All SUMMARY files created.")

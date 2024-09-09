@@ -24,17 +24,16 @@ class ConsoleWidget(QWidget):
         layout.addWidget(self.console)
         self.setLayout(layout)
     def log(self, message):
-        self.console.append(message)
-class ConsoleLogger:
-    def __init__(self, console_widget):
-        self.console_widget = console_widget
+        formatted_message = f'<span style="color:#20a67f;">{message}</span>'  # Green text
+        self.console.append(formatted_message)
+    def alert(self, message):
+        formatted_message = f'<span style="color:#ee3140;">{message}</span>'  # Red text
+        self.console.append(formatted_message)
+    def notify(self, message):
+        formatted_message = f'<span style="color:#e69629;">{message}</span>'  # Yellow text
+        self.console.append(formatted_message)
 
-    def write(self, message):
-        if message.strip():  # Avoid logging empty messages
-            self.console_widget.log(message)
 
-    def flush(self):
-        pass
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     window = ConsoleWidget()
