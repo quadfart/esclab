@@ -18,6 +18,10 @@ class ComparisonView(QDialog):
         self.df_esc1=None
         self.df_esc2=None
         self.df_esc3=None
+        self.df_rpm0=None
+        self.df_rpm1=None
+        self.df_rpm2=None
+        self.df_rpm3=None
         self.esc0= None
         self.esc1= None
         self.esc2= None
@@ -53,7 +57,7 @@ class ComparisonView(QDialog):
             self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowMaximizeButtonHint)
             self.list_widget = QListWidget()
             self.list_widget.addItems(['Voltage', 'Current', 'Temperature', 'RPM', 'Throttle Duty',
-                                   'Motor Duty','Phase Current','Power'])
+                                   'Motor Duty','Phase Current','Power','RPM - Throttle'])
 
 
         self.selected_value = 'Voltage'
@@ -171,6 +175,12 @@ class ComparisonView(QDialog):
                 self.df_esc0['ESC'] = 'ESC0'
                 print("ESC0 DataFrame created successfully")
                 print(self.df_esc0.head())
+                self.df_rpm0 = pd.DataFrame({
+                    'Mean RPM': self.esc0.mean_rpm,
+                    'Throttle': self.esc0.mean_thr,
+                })
+                self.df_rpm0['ESC'] = 'ESC0'
+
             if self.esc1:
                 self.df_esc1 = pd.DataFrame({
                     'Time': self.esc1.timestamp,
@@ -187,6 +197,12 @@ class ComparisonView(QDialog):
                 self.df_esc1['ESC'] = 'ESC1'
                 print("ESC1 DataFrame created successfully")
                 print(self.df_esc1.head())
+                self.df_rpm1 = pd.DataFrame({
+                    'Mean RPM': self.esc1.mean_rpm,
+                    'Throttle': self.esc1.mean_thr,
+                })
+                self.df_rpm1['ESC'] = 'ESC1'
+
             if self.esc2:
                 self.df_esc2 = pd.DataFrame({
                     'Time': self.esc2.timestamp,
@@ -203,6 +219,12 @@ class ComparisonView(QDialog):
                 self.df_esc2['ESC'] = 'ESC2'
                 print("ESC2 DataFrame created successfully")
                 print(self.df_esc2.head())
+                self.df_rpm2 = pd.DataFrame({
+                    'Mean RPM': self.esc2.mean_rpm,
+                    'Throttle': self.esc2.mean_thr,
+                })
+                self.df_rpm2['ESC'] = 'ESC2'
+
             if self.esc3:
                 self.df_esc3 = pd.DataFrame({
                     'Time': self.esc3.timestamp,
@@ -219,8 +241,14 @@ class ComparisonView(QDialog):
                 self.df_esc3['ESC'] = 'ESC3'
                 print("ESC3 DataFrame created successfully")
                 print(self.df_esc3.head())
+                self.df_rpm3 = pd.DataFrame({
+                    'Mean RPM': self.esc3.mean_rpm,
+                    'Throttle': self.esc3.mean_thr,
+                })
+                self.df_rpm3['ESC'] = 'ESC3'
 
             self.df_combined = pd.concat([self.df_esc0, self.df_esc1, self.df_esc2, self.df_esc3])
+            self.df_rpm_combined = pd.concat([self.df_rpm0,self.df_rpm1, self.df_rpm2, self.df_rpm3])
             print("Combined DataFrame created successfully")
             print(self.df_combined.head())
 
@@ -230,12 +258,32 @@ class ComparisonView(QDialog):
     def on_item_clicked(self, item):
         self.selected_value = item.text()
         print(f"Selected value: {self.selected_value}")
-        self.update_plot()
+        if self.selected_value == 'RPM - Throttle':
+            self.mean_plot()
+        else:
+            self.update_plot()
 
     def update_plot(self):
         fig = px.line(self.df_combined, x='Time', y=self.selected_value, color='ESC',
                       labels={'Time': 'Time', self.selected_value: self.selected_value},
                       title='Comparison View')
+
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".html") as tmp_file:
+            fig.write_html(tmp_file.name)
+            tmp_file_path = tmp_file.name
+
+        self.browser.setUrl(QUrl.fromLocalFile(tmp_file_path))
+
+    def mean_plot(self):
+
+        df_sorted = self.df_rpm_combined.sort_values(by='Throttle')
+
+        # Create the line plot with Plotly Express
+        fig = px.line(df_sorted, x='Throttle', y='Mean RPM', color='ESC', markers=True,
+                      title='Mean RPM vs Throttle',
+                      labels={'Throttle': 'Throttle', 'Mean RPM': 'Mean RPM','ESC':'ESC'})
+        fig.update_traces(marker=dict(size=8, symbol='circle'),  # Use circles for markers
+                          line=dict(width=2))
 
         with tempfile.NamedTemporaryFile(delete=False, suffix=".html") as tmp_file:
             fig.write_html(tmp_file.name)
