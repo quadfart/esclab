@@ -313,17 +313,13 @@ class ProcessTool(QDialog):
             self.canvas3.draw()
 
     def check_crop(self):
-        # Count the number of non-None tuples in self.crop_range
         non_none_count = sum(1 for i in self.crop_range if i[0] is not None and i[1] is not None)
 
         if self.checked_num == 0:
             self.crop_button.setEnabled(False)
-        # Check if the count matches the length of self.init_list
         elif non_none_count >= self.checked_num:
-            # Enable the button
             self.crop_button.setEnabled(True)
         else:
-            # Disable the button if the condition is not met
             self.crop_button.setEnabled(False)
 
     def crop_data(self):
@@ -423,7 +419,7 @@ class ProcessTool(QDialog):
             if temp is not None:
                 self.max_range.append(len(temp.timestamp))
             else:
-                print("oops")
+                self.console.alert("!!Unable to set maximum index")
         print(self.max_range)
 
     def check_num_update(self):

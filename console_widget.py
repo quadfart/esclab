@@ -19,8 +19,8 @@ class ConsoleWidget(QWidget):
             }
         """)
         self.console.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self.console.setMinimumSize(260, 100)  # Minimum width and height
-        self.console.setMaximumSize(520, 200)  # Maximum width and height
+        self.console.setMinimumSize(260, 100)
+        self.console.setMaximumSize(520, 200)
         layout.addWidget(self.console)
         self.setLayout(layout)
     def log(self, message):
