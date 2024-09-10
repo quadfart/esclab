@@ -21,3 +21,7 @@ $ pip install numpy pandas matplotlib plotly pyqt6 pyqt6-webengine
 if does not work
 
 $ pip3 install numpy pandas matplotlib plotly pyqt6 pyqt6-webengine
+
+after installation go to directory, run main.py
+
+python main.py
