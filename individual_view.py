@@ -4,6 +4,7 @@ import pandas as pd
 import plotly.express as px
 from PyQt6.QtCore import QUrl
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QIcon
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWidgets import QVBoxLayout, QWidget, QDialog, QTabWidget
 
@@ -13,6 +14,7 @@ from abstraction import EscData
 class IndividualView(QDialog):
     def __init__(self,e0=None,e1=None,e2=None,e3=None):
         super().__init__()
+        self.setWindowIcon(QIcon('logo.ico'))
         self.esc0=None
         self.esc1=None
         self.esc2=None

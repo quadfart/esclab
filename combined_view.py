@@ -2,6 +2,7 @@ import tempfile
 import pandas as pd
 import plotly.graph_objects as go
 from PyQt6.QtCore import pyqtSlot, QObject, QUrl
+from PyQt6.QtGui import QIcon
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QVBoxLayout, QWidget, QDialog, QFileDialog, \
     QTabWidget, QListWidget, QHBoxLayout, QCheckBox, QLabel, QComboBox
@@ -16,6 +17,7 @@ from data_process import PostProcess
 class CombinedView(QDialog):
     def __init__(self,e0=None,e1=None,e2=None,e3=None,post_process=False):
         super().__init__()
+        self.setWindowIcon(QIcon('logo.ico'))
         self.df_esc0=None
         self.df_esc1=None
         self.df_esc2=None

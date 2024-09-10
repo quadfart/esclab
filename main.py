@@ -2,6 +2,9 @@ import copy
 import os
 import sys
 from pathlib import Path
+
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QPixmap, QIcon
 from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QVBoxLayout, QWidget, QFileDialog, \
     QTabWidget, QHBoxLayout, QLabel
 from abstraction import take_values_from_csv
@@ -17,6 +20,7 @@ from console_widget import ConsoleWidget
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.setWindowIcon(QIcon('logo.ico'))
         self.setWindowTitle("Main Window")
         self.setGeometry(100, 100, 900, 400)
         self.main_directory=None
@@ -47,6 +51,10 @@ class MainWindow(QMainWindow):
 
         # Logo placeholder
         self.logo_label = QLabel("Logo", self)  # Replace with actual logo if available
+        pixmap=QPixmap("logo.png")
+        scaled_pixmap = pixmap.scaled(150,150, Qt.AspectRatioMode.KeepAspectRatio,
+                                      Qt.TransformationMode.SmoothTransformation)
+        self.logo_label.setPixmap(scaled_pixmap)
         left_layout.addWidget(self.logo_label)
 
         self.buttons_tab = QTabWidget(self)
