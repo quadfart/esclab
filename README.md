@@ -8,6 +8,8 @@ To install;
 py -m ensurepip --upgrade
 
 pip install numpy pandas matplotlib plotly pyqt6 pyqt6-webengine
+
+
 " install all at once "
 
 
