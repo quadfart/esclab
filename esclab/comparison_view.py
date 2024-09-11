@@ -15,7 +15,7 @@ from data_process import PostProcess
 class ComparisonView(QDialog):
     def __init__(self,e0=None,e1=None,e2=None,e3=None,post_process=False):
         super().__init__()
-        self.setWindowIcon(QIcon('logo.ico'))
+        self.setWindowIcon(QIcon('data/logo.ico'))
         self.df_esc0=None
         self.df_esc1=None
         self.df_esc2=None

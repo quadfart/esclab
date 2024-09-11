@@ -20,7 +20,8 @@ from console_widget import ConsoleWidget
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowIcon(QIcon('logo.ico'))
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        self.setWindowIcon(QIcon(os.path.abspath(os.path.join(base_dir,'data','logo.ico'))))
         self.setWindowTitle("Main Window")
         self.setGeometry(100, 100, 900, 400)
         self.main_directory=None
@@ -49,9 +50,11 @@ class MainWindow(QMainWindow):
         left_layout.setSpacing(30)
         main_layout.addLayout(left_layout, stretch=3)
 
-        # Logo placeholder
-        self.logo_label = QLabel("Logo", self)  # Replace with actual logo if available
-        pixmap=QPixmap("logo.png")
+
+        self.logo_label = QLabel("Logo", self)
+        logo_path= os.path.abspath(os.path.join(base_dir,"data", "logo.png"))
+        pixmap=QPixmap(logo_path)
+        print(logo_path)
         scaled_pixmap = pixmap.scaled(150,150, Qt.AspectRatioMode.KeepAspectRatio,
                                       Qt.TransformationMode.SmoothTransformation)
         self.logo_label.setPixmap(scaled_pixmap)

@@ -14,7 +14,7 @@ from abstraction import EscData
 class IndividualView(QDialog):
     def __init__(self,e0=None,e1=None,e2=None,e3=None):
         super().__init__()
-        self.setWindowIcon(QIcon('logo.ico'))
+        self.setWindowIcon(QIcon('data/logo.ico'))
         self.esc0=None
         self.esc1=None
         self.esc2=None
