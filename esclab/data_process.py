@@ -38,6 +38,10 @@ class PostProcess(EscData):
 
     def start_end_crop(self):
         # Crop from the start
+        for i ,value in enumerate(self.t_duty):
+            if value <= 3:
+                self.t_duty[i] = 0
+
         for i, value in enumerate(self.t_duty):
             if value == 0:
                 # Crop all lists up to and including the first zero in t_duty
