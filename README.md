@@ -1,4 +1,4 @@
-# ESClab v0.2.2 README
+# ESClab v0.2.3 README
 ## Dependencies:
   **PyQt6** >= *6.7.1*<br>
   **PyQt6-WebEngine** >= *6.7.0*<br>

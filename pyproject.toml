@@ -1,6 +1,6 @@
 [project]
 name = "ESClab"
-version = "0.2.2"
+version = "0.2.3"
 authors = [
   { name="Uygar SÖĞÜTLÜ", email="sogutlu.uygar@student.atilim.edu.tr" },
 ]
